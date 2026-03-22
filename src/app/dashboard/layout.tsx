@@ -11,7 +11,7 @@ export default function DashboardLayout({
         display: 'flex',
         flexDirection: 'row',
         minHeight: '100vh',
-        backgroundColor: '#111111',
+        backgroundColor: 'var(--bg-primary)',
       }}
     >
       <Sidebar />
@@ -19,7 +19,7 @@ export default function DashboardLayout({
         style={{
           flex: 1,
           overflowY: 'auto',
-          backgroundColor: '#111111',
+          backgroundColor: 'var(--bg-primary)',
           minHeight: '100vh',
         }}
       >

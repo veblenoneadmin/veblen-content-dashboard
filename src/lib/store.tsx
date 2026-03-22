@@ -1,13 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Post, Competitor, NewsItem } from './types';
 import { samplePosts, sampleCompetitors, sampleNews } from './data';
+
+type Theme = 'veblen' | 'vscode';
 
 interface DashboardContextType {
   posts: Post[];
   competitors: Competitor[];
   newsItems: NewsItem[];
+  theme: Theme;
+  toggleTheme: () => void;
   addPost: (post: Omit<Post, 'id' | 'createdAt'>) => void;
   updatePost: (id: string, updates: Partial<Post>) => void;
 }
@@ -18,6 +22,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>(samplePosts);
   const [competitors] = useState<Competitor[]>(sampleCompetitors);
   const [newsItems] = useState<NewsItem[]>(sampleNews);
+  const [theme, setTheme] = useState<Theme>('veblen');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme === 'vscode' ? 'vscode' : '');
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === 'veblen' ? 'vscode' : 'veblen'));
 
   const addPost = (postData: Omit<Post, 'id' | 'createdAt'>) => {
     const newPost: Post = {
@@ -35,7 +46,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DashboardContext.Provider value={{ posts, competitors, newsItems, addPost, updatePost }}>
+    <DashboardContext.Provider value={{ posts, competitors, newsItems, theme, toggleTheme, addPost, updatePost }}>
       {children}
     </DashboardContext.Provider>
   );

@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={{ backgroundColor: '#111111' }}>
-      <body style={{ backgroundColor: '#111111', color: '#FFFFFF', fontFamily: "'DM Sans', sans-serif", margin: 0, padding: 0 }}>
+    <html lang="en" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <body style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "'DM Sans', sans-serif", margin: 0, padding: 0 }}>
         <DashboardProvider>
           {children}
         </DashboardProvider>

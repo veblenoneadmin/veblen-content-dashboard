@@ -13,7 +13,9 @@ import {
   BarChart2,
   CalendarDays,
   Users,
+  Monitor,
 } from 'lucide-react';
+import { useDashboard } from '@/lib/store';
 
 const navItems = [
   { group: null, label: 'Home', href: '/dashboard/home', icon: House },
@@ -32,6 +34,7 @@ const groups = ['RESEARCH', 'CREATE', 'INSIGHTS'];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useDashboard();
 
   const ungrouped = navItems.filter((item) => item.group === null);
   const grouped = groups.map((group) => ({
@@ -54,8 +57,8 @@ export default function Sidebar() {
           padding: '6px 10px',
           borderRadius: '6px',
           textDecoration: 'none',
-          color: isActive ? '#FFFFFF' : '#999999',
-          backgroundColor: isActive ? 'rgba(212, 132, 90, 0.13)' : 'transparent',
+          color: isActive ? 'var(--text-primary)' : 'var(--text-inactive)',
+          backgroundColor: isActive ? 'var(--accent-tint)' : 'transparent',
           fontSize: '13px',
           fontWeight: isActive ? 500 : 400,
           transition: 'background-color 0.15s, color 0.15s',
@@ -63,13 +66,13 @@ export default function Sidebar() {
         onMouseEnter={(e) => {
           if (!isActive) {
             (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.04)';
-            (e.currentTarget as HTMLElement).style.color = '#CCCCCC';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-hover)';
           }
         }}
         onMouseLeave={(e) => {
           if (!isActive) {
             (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = '#999999';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-inactive)';
           }
         }}
       >
@@ -84,8 +87,8 @@ export default function Sidebar() {
       style={{
         width: '200px',
         minWidth: '200px',
-        backgroundColor: '#141414',
-        borderRight: '1px solid #262626',
+        backgroundColor: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border)',
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -103,7 +106,7 @@ export default function Sidebar() {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #D4845A, #E8A87C)',
+              background: 'linear-gradient(135deg, var(--accent), var(--accent-light))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -128,7 +131,7 @@ export default function Sidebar() {
                 fontFamily: 'Playfair Display, serif',
                 fontWeight: 700,
                 fontSize: '14px',
-                color: '#FFFFFF',
+                color: 'var(--text-primary)',
                 lineHeight: '1.2',
               }}
             >
@@ -140,11 +143,11 @@ export default function Sidebar() {
                   width: '5px',
                   height: '5px',
                   borderRadius: '50%',
-                  backgroundColor: '#D4845A',
+                  backgroundColor: 'var(--accent)',
                   flexShrink: 0,
                 }}
               />
-              <span style={{ fontSize: '10px', color: '#888888' }}>355.9K followers</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>355.9K followers</span>
             </div>
           </div>
         </div>
@@ -152,10 +155,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {/* Ungrouped items */}
         {ungrouped.map(renderItem)}
-
-        {/* Grouped items */}
         {grouped.map((group) => (
           <div key={group.label} style={{ marginTop: '16px' }}>
             <div
@@ -163,7 +163,7 @@ export default function Sidebar() {
                 fontSize: '9px',
                 fontWeight: 600,
                 letterSpacing: '0.08em',
-                color: '#555555',
+                color: 'var(--text-faint)',
                 padding: '0 10px',
                 marginBottom: '4px',
                 textTransform: 'uppercase',
@@ -178,6 +178,38 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {/* Theme toggle */}
+      <button
+        onClick={toggleTheme}
+        title={theme === 'veblen' ? 'Switch to VS Code theme' : 'Switch to Veblen theme'}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '7px 10px',
+          borderRadius: '6px',
+          border: '1px solid var(--border)',
+          backgroundColor: 'transparent',
+          color: 'var(--text-muted)',
+          fontSize: '12px',
+          cursor: 'pointer',
+          marginBottom: '8px',
+          width: '100%',
+          transition: 'background-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-tint)';
+          (e.currentTarget as HTMLElement).style.color = 'var(--accent)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+          (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+        }}
+      >
+        <Monitor size={13} />
+        <span>{theme === 'veblen' ? 'VS Code Theme' : 'Veblen Theme'}</span>
+      </button>
+
       {/* Bottom user avatar */}
       <div
         style={{
@@ -185,8 +217,8 @@ export default function Sidebar() {
           alignItems: 'center',
           gap: '8px',
           padding: '8px 10px',
-          borderTop: '1px solid #262626',
-          marginTop: '8px',
+          borderTop: '1px solid var(--border)',
+          marginTop: '0px',
         }}
       >
         <div
@@ -194,16 +226,16 @@ export default function Sidebar() {
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            backgroundColor: '#262626',
+            backgroundColor: 'var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: '12px', color: '#AAAAAA', fontWeight: 500 }}>Z</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Z</span>
         </div>
-        <span style={{ fontSize: '13px', color: '#999999' }}>Zac</span>
+        <span style={{ fontSize: '13px', color: 'var(--text-inactive)' }}>Zac</span>
       </div>
     </div>
   );

@@ -8,13 +8,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Veblen (default) theme ── */
 :root {
-  --bg-primary: #111111;
-  --bg-card: #1A1A1A;
-  --bg-sidebar: #141414;
-  --border: #262626;
-  --copper: #D4845A;
-  --copper-light: #E8A87C;
+  --bg-primary:   #111111;
+  --bg-card:      #1A1A1A;
+  --bg-sidebar:   #141414;
+  --bg-input:     #111111;
+  --bg-chip-type: #333333;
+  --bg-calendar-empty: #161616;
+
+  --border:       #262626;
+  --border-light: #444444;
+  --border-input: #333333;
+
+  --accent:       #D4845A;
+  --accent-light: #E8A87C;
+  --accent-tint:  rgba(212, 132, 90, 0.13);
+
+  --text-primary:   #FFFFFF;
+  --text-secondary: #AAAAAA;
+  --text-muted:     #888888;
+  --text-subtle:    #666666;
+  --text-faint:     #555555;
+  --text-inactive:  #999999;
+  --text-hover:     #CCCCCC;
+  --text-chip-type: #999999;
+
+  /* shadcn/ui tokens */
   --radius: 0.625rem;
   --background: #111111;
   --foreground: #FFFFFF;
@@ -28,12 +48,58 @@
   --secondary-foreground: #FFFFFF;
   --muted: #1A1A1A;
   --muted-foreground: #888888;
-  --accent: #262626;
+  --accent-ui: #262626;
   --accent-foreground: #FFFFFF;
   --destructive: oklch(0.577 0.245 27.325);
   --border-color: #262626;
   --input: #262626;
   --ring: #D4845A;
+}
+
+/* ── VS Code Dark theme ── */
+[data-theme="vscode"] {
+  --bg-primary:   #1E1E1E;
+  --bg-card:      #252526;
+  --bg-sidebar:   #333333;
+  --bg-input:     #3C3C3C;
+  --bg-chip-type: #3C3C3C;
+  --bg-calendar-empty: #1E1E1E;
+
+  --border:       #3C3C3C;
+  --border-light: #555555;
+  --border-input: #3C3C3C;
+
+  --accent:       #007ACC;
+  --accent-light: #4FC1FF;
+  --accent-tint:  rgba(0, 122, 204, 0.13);
+
+  --text-primary:   #D4D4D4;
+  --text-secondary: #AAAAAA;
+  --text-muted:     #858585;
+  --text-subtle:    #6A6A6A;
+  --text-faint:     #4D4D4D;
+  --text-inactive:  #858585;
+  --text-hover:     #D4D4D4;
+  --text-chip-type: #858585;
+
+  /* shadcn/ui tokens */
+  --background: #1E1E1E;
+  --foreground: #D4D4D4;
+  --card: #252526;
+  --card-foreground: #D4D4D4;
+  --popover: #252526;
+  --popover-foreground: #D4D4D4;
+  --primary: #007ACC;
+  --primary-foreground: #FFFFFF;
+  --secondary: #3C3C3C;
+  --secondary-foreground: #D4D4D4;
+  --muted: #252526;
+  --muted-foreground: #858585;
+  --accent-ui: #3C3C3C;
+  --accent-foreground: #D4D4D4;
+  --border-color: #3C3C3C;
+  --input: #3C3C3C;
+  --ring: #007ACC;
 }
 
 @theme inline {
@@ -52,7 +118,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
+  --color-accent: var(--accent-ui);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border-color);
@@ -72,8 +138,8 @@
     box-sizing: border-box;
   }
   html, body {
-    background-color: #111111;
-    color: #FFFFFF;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'DM Sans', sans-serif;
     height: 100%;
     margin: 0;

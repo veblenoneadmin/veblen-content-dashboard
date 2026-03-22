@@ -10,8 +10,8 @@ export default function TypeChip({ type }: TypeChipProps) {
   return (
     <span
       style={{
-        backgroundColor: '#333333',
-        color: '#999999',
+        backgroundColor: 'var(--bg-chip-type)',
+        color: 'var(--text-chip-type)',
         fontSize: '10px',
         padding: '2px 8px',
         borderRadius: '999px',
