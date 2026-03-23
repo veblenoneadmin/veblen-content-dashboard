@@ -5,6 +5,7 @@ import { POST_STATUSES, STATUS_COLORS, PLATFORM_COLORS } from '@/lib/constants';
 import { PostStatus } from '@/lib/types';
 import StatusChip from '@/components/shared/StatusChip';
 import { CalendarDays, RefreshCw, Download, Settings } from 'lucide-react';
+import VsCodeHome from './VsCodeHome';
 
 function Sparkline({ color }: { color: string }) {
   const heights = [30, 50, 40, 70, 55, 80, 95];
@@ -38,7 +39,9 @@ const platformStats = [
 ];
 
 export default function HomePage() {
-  const { posts, newsItems } = useDashboard();
+  const { posts, newsItems, theme } = useDashboard();
+
+  if (theme === 'vscode') return <VsCodeHome />;
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
