@@ -14,8 +14,7 @@ type ViewMode   = 'list' | '2col' | '3col';
 const VS = {
   bg0: '#1e1e1e', bg1: '#252526', bg2: '#2d2d2d', bg3: '#333333',
   border: '#3c3c3c', text0: '#f0f0f0', text1: '#c0c0c0', text2: '#909090',
-  accent: '#FF8000', accentGlow: 'rgba(255,128,0,0.10)',
-  blue: '#007acc', blueTint: 'rgba(0,122,204,0.13)',
+  accent: '#007acc', accentGlow: 'rgba(0,122,204,0.12)',
   error: '#f44747',
 };
 
@@ -216,7 +215,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
                   <button
                     onClick={() => navigator.clipboard.writeText(current.articleText)}
                     style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', color: VS.text1, fontSize: '11px', cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = VS.blue}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = VS.accent}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = VS.border}
                   >
                     <Copy size={12} />Copy
