@@ -73,7 +73,6 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
       // Resolve redirect URLs (e.g. Google News proxy links) before sending to n8n
       const resolvedSources = await Promise.all(
         validSources.map(async (url) => {
-          if (!url.includes('news.google.com') && !url.includes('rss/articles')) return url;
           try {
             const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
             const data = await res.json();

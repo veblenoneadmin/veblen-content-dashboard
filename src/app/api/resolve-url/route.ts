@@ -5,24 +5,34 @@ export async function GET(req: NextRequest) {
   if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 });
 
   try {
-    // Follow redirects (manual so we can capture the final URL)
-    let current = url;
-    for (let i = 0; i < 10; i++) {
-      const res = await fetch(current, {
-        method: 'HEAD',
-        redirect: 'manual',
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VeblenDashboard/1.0)' },
-        signal: AbortSignal.timeout(8000),
-      });
-      const location = res.headers.get('location');
-      if ((res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) && location) {
-        current = location.startsWith('http') ? location : new URL(location, current).href;
-      } else {
-        break;
-      }
+    // Use GET + redirect:follow so fetch natively follows all HTTP redirects.
+    // response.url is the final destination URL.
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    // response.url is the final URL after all redirects
+    const finalUrl = res.url && res.url !== url ? res.url : url;
+
+    // Google News sometimes embeds the real URL in the HTML as a meta refresh
+    // or canonical link — try to extract it if we're still on a google domain
+    if (finalUrl.includes('google.com')) {
+      const html = await res.text();
+      const canonical = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1]
+        ?? html.match(/content=["']0;url=([^"']+)["']/i)?.[1]
+        ?? html.match(/"(https?:\/\/(?!.*google\.com)[^"]+)"/)?.[1];
+      if (canonical) return NextResponse.json({ url: canonical });
     }
-    return NextResponse.json({ url: current });
+
+    return NextResponse.json({ url: finalUrl });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    // On failure, return the original URL so the request still goes through
+    return NextResponse.json({ url, error: String(e) });
   }
 }
