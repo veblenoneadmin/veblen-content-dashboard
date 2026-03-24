@@ -49,8 +49,30 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
   const [saved, setSaved]     = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Google News URLs cannot be resolved server-side (JS-only redirect).
-  // We surface an "Open" button in the UI so the user can get the real URL manually.
+  const [resolving, setResolving] = useState(false);
+
+  // Resolve Google News redirect URLs server-side when the modal opens.
+  // Railway's US IP receives proper HTTP redirects from Google to the real article.
+  useEffect(() => {
+    if (!initialUrls.length) return;
+    const hasGNews = initialUrls.some(u => u.includes('news.google.com'));
+    if (!hasGNews) return;
+    setResolving(true);
+    Promise.all(
+      initialUrls.map(async (url) => {
+        if (!url.includes('news.google.com')) return url;
+        try {
+          const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
+          const data = await res.json();
+          return (data.url && data.url !== url) ? data.url : url;
+        } catch { return url; }
+      })
+    ).then(resolved => {
+      setSources(resolved);
+      setResolving(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inp: React.CSSProperties = { background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '8px 11px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontFamily: 'monospace', color: VS.text2, textTransform: 'uppercase' as const, letterSpacing: '1.2px', marginBottom: '4px' };
@@ -187,6 +209,11 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <label style={{ ...lbl, marginBottom: 0 }}>Source URLs</label>
+                  {resolving && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', fontFamily: 'monospace', color: VS.text2 }}>
+                      <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />resolving…
+                    </span>
+                  )}
                 </div>
                 <button onClick={() => setSources(s => [...s, ''])}
                   style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontFamily: 'monospace', color: VS.accent, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
