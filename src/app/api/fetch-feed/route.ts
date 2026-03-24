@@ -56,7 +56,7 @@ function parseRss(xml: string, sourceName: string) {
 }
 
 function parseJsonFeed(json: Record<string, unknown>, sourceName: string) {
-  const raw = (json.items ?? json.articles ?? json.data ?? json.results ?? json.posts ?? json.feed ?? []) as Record<string, unknown>[];
+  const raw = (json.items ?? json.articles ?? json.news ?? json.data ?? json.results ?? json.posts ?? json.feed ?? []) as Record<string, unknown>[];
   if (!Array.isArray(raw)) return [];
   return raw.slice(0, 30).map((item, i) => ({
     id: `${sourceName}-${Date.now()}-${i}`,
@@ -64,8 +64,8 @@ function parseJsonFeed(json: Record<string, unknown>, sourceName: string) {
     title:   String(item.title ?? item.headline ?? item.name ?? 'Untitled'),
     summary: String(item.summary ?? item.description ?? item.excerpt ?? item.content_text ?? '').slice(0, 280),
     url:     String(item.url ?? item.link ?? item.href ?? '') || undefined,
-    timeAgo: item.date_published ?? item.published_at ?? item.created_at
-      ? timeAgo(String(item.date_published ?? item.published_at ?? item.created_at))
+    timeAgo: item.date_published ?? item.published_at ?? item.published ?? item.created_at
+      ? timeAgo(String(item.date_published ?? item.published_at ?? item.published ?? item.created_at))
       : 'recently',
   }));
 }
