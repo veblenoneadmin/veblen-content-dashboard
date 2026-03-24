@@ -10,10 +10,13 @@ interface DashboardContextType {
   posts: Post[];
   competitors: Competitor[];
   newsItems: NewsItem[];
+  newsSources: string[];
   theme: Theme;
   toggleTheme: () => void;
   addPost: (post: Omit<Post, 'id' | 'createdAt'>) => void;
   updatePost: (id: string, updates: Partial<Post>) => void;
+  addNewsSource: (source: string) => void;
+  removeNewsSource: (source: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -22,6 +25,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>(samplePosts);
   const [competitors] = useState<Competitor[]>(sampleCompetitors);
   const [newsItems] = useState<NewsItem[]>(sampleNews);
+  const [newsSources, setNewsSources] = useState<string[]>(['Reddit', 'RSS', 'LocalLLaMA']);
   const [theme, setTheme] = useState<Theme>('vscode');
 
   useEffect(() => {
@@ -29,6 +33,17 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === 'veblen' ? 'vscode' : 'veblen'));
+
+  const addNewsSource = (source: string) => {
+    const trimmed = source.trim();
+    if (trimmed && !newsSources.includes(trimmed)) {
+      setNewsSources(prev => [...prev, trimmed]);
+    }
+  };
+
+  const removeNewsSource = (source: string) => {
+    setNewsSources(prev => prev.filter(s => s !== source));
+  };
 
   const addPost = (postData: Omit<Post, 'id' | 'createdAt'>) => {
     const newPost: Post = {
@@ -46,7 +61,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DashboardContext.Provider value={{ posts, competitors, newsItems, theme, toggleTheme, addPost, updatePost }}>
+    <DashboardContext.Provider value={{ posts, competitors, newsItems, newsSources, theme, toggleTheme, addPost, updatePost, addNewsSource, removeNewsSource }}>
       {children}
     </DashboardContext.Provider>
   );

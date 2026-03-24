@@ -27,7 +27,7 @@ export interface Competitor {
 
 export interface NewsItem {
   id: string;
-  source: 'Reddit' | 'RSS' | 'LocalLLM' | 'LocalLLaMA';
+  source: string;
   subreddit?: string;
   upvotes?: number;
   title: string;
