@@ -114,8 +114,20 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
     if (!validSources.length) { setError('Please provide at least one source URL.'); return; }
     startLoading();
     try {
+      // Resolve any Google News redirect URLs to real article URLs before sending to n8n
+      const resolvedSources = await Promise.all(
+        validSources.map(async (url) => {
+          try {
+            const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            return data.url ?? url;
+          } catch {
+            return url;
+          }
+        })
+      );
       const payload = {
-        articles: [{ sources: validSources, topic: topic.trim() }],
+        articles: [{ sources: resolvedSources, topic: topic.trim() }],
         tone, mood,
         ...(wordCount ? { wordCount: parseInt(wordCount) } : {}),
       };
@@ -123,7 +135,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || `HTTP ${res.status}`); return; }
       const articles = Array.isArray(data) ? data : (data.articles ?? data.results ?? []);
-      if (!articles.length) { setError(`No articles returned. URLs sent: ${validSources.join(', ')}`); return; }
+      if (!articles.length) { setError(`No articles returned. URLs sent: ${resolvedSources.join(', ')}`); return; }
       setResults(articles);
       setCurrentIdx(articles[0].index ?? 0);
       setSaved(false);
