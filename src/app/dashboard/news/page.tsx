@@ -64,7 +64,15 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
         try {
           const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
           const data = await res.json();
-          return (data.url && data.url !== url) ? data.url : url;
+          // Only accept resolved URL if it's a real article (non-Google, has a path)
+          const resolved = data.url;
+          try {
+            if (resolved && resolved !== url && !resolved.includes('google.com')) {
+              const { pathname } = new URL(resolved);
+              if (pathname.length > 1) return resolved;
+            }
+          } catch { /* ignore */ }
+          return url;
         } catch { return url; }
       })
     ).then(resolved => {
@@ -120,7 +128,14 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
           try {
             const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
             const data = await res.json();
-            return data.url ?? url;
+            const resolved = data.url;
+            try {
+              if (resolved && resolved !== url && !resolved.includes('google.com')) {
+                const { pathname } = new URL(resolved);
+                if (pathname.length > 1) return resolved;
+              }
+            } catch { /* ignore */ }
+            return url;
           } catch {
             return url;
           }
