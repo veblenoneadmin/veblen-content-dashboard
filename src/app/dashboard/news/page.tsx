@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useDashboard } from '@/lib/store';
-import { Search, ThumbsUp, Clock, Plus, X, ArrowUpDown, ExternalLink } from 'lucide-react';
+import { Search, ThumbsUp, Clock, Plus, X, ArrowUpDown, ExternalLink, List, LayoutGrid, Grid3x3 } from 'lucide-react';
 
 type SortOption = 'newest' | 'upvotes';
+type ViewMode = 'list' | '2col' | '3col';
 
 export default function NewsPage() {
   const { newsItems, newsSources, addNewsSource, removeNewsSource } = useDashboard();
@@ -13,6 +14,7 @@ export default function NewsPage() {
   const [sort, setSort] = useState<SortOption>('newest');
   const [onlyWithUpvotes, setOnlyWithUpvotes] = useState(false);
   const [onlyWithLink, setOnlyWithLink] = useState(false);
+  const [view, setView] = useState<ViewMode>('list');
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceInput, setNewSourceInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,8 +62,21 @@ export default function NewsPage() {
             {filtered.length} of {newsItems.length} items
           </p>
         </div>
-        {/* Search */}
-        <div style={{ position: 'relative', flexShrink: 0, width: '280px' }}>
+        {/* View toggle + Search */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+            {([['list', List, 'List'], ['2col', LayoutGrid, '2 col'], ['3col', Grid3x3, '3 col']] as const).map(([v, Icon, label]) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                title={label}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 10px', background: view === v ? 'var(--accent-tint)' : 'transparent', border: 'none', borderRight: v !== '3col' ? '1px solid var(--border)' : 'none', color: view === v ? 'var(--accent)' : 'var(--text-muted)', fontSize: '11px', cursor: 'pointer', fontWeight: view === v ? 600 : 400 }}
+              >
+                <Icon size={13} />{label}
+              </button>
+            ))}
+          </div>
+        <div style={{ position: 'relative', width: '260px' }}>
           <Search size={13} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
           <input
             value={search}
@@ -69,6 +84,7 @@ export default function NewsPage() {
             placeholder="Search news..."
             style={{ width: '100%', padding: '8px 12px 8px 32px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
           />
+        </div>
         </div>
       </div>
 
@@ -171,13 +187,18 @@ export default function NewsPage() {
           No news items match your filters.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{
+          display: view === 'list' ? 'flex' : 'grid',
+          flexDirection: view === 'list' ? 'column' : undefined,
+          gridTemplateColumns: view === '2col' ? 'repeat(2, 1fr)' : view === '3col' ? 'repeat(3, 1fr)' : undefined,
+          gap: '10px',
+        }}>
           {filtered.map(item => (
             <div
               key={item.id}
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: '0 10px 10px 0', padding: '14px 18px' }}
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: '0 10px 10px 0', padding: '14px 18px', display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 600, backgroundColor: 'rgba(0,122,204,0.12)', color: 'var(--accent)', whiteSpace: 'nowrap' }}>
@@ -194,12 +215,12 @@ export default function NewsPage() {
                       <span style={{ fontSize: '11px' }}>{item.timeAgo}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '5px', lineHeight: '1.4' }}>{item.title}</div>
+                  <div style={{ fontSize: view === '3col' ? '13px' : '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '5px', lineHeight: '1.4' }}>{item.title}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6' }}>{item.summary}</div>
                 </div>
 
-                {/* Link button */}
-                {item.url && (
+                {/* Link button — only show inline for list view */}
+                {view === 'list' && item.url && (
                   <a
                     href={item.url}
                     target="_blank"
@@ -212,6 +233,22 @@ export default function NewsPage() {
                   </a>
                 )}
               </div>
+
+              {/* Link button at bottom for grid views */}
+              {view !== 'list' && item.url && (
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.75'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+                  >
+                    <ExternalLink size={11} />Open source
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>
