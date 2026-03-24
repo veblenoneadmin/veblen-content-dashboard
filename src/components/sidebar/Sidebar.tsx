@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, X,
+  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, X,
 } from 'lucide-react';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { group: 'RESEARCH', label: 'News',            href: '/dashboard/news',           icon: Newspaper },
   { group: 'RESEARCH', label: 'Topics',          href: '/dashboard/topics',         icon: Hash },
   { group: 'RESEARCH', label: 'Formats',         href: '/dashboard/formats',        icon: Layout },
+  { group: 'RESEARCH', label: 'Archive',         href: '/dashboard/archive',        icon: Archive },
   { group: 'CREATE',   label: 'YouTube',         href: '/dashboard/youtube',        icon: Play },
   { group: 'CREATE',   label: 'Instagram',       href: '/dashboard/instagram',      icon: Camera },
   { group: 'CREATE',   label: 'LinkedIn',        href: '/dashboard/linkedin',       icon: Briefcase },
