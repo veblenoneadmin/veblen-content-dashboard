@@ -78,9 +78,11 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
       const res  = await fetch('/api/generate-articles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || `HTTP ${res.status}`); return; }
-      if (!data.articles?.length) { setError('No articles returned.'); return; }
-      setResults(data.articles);
-      setCurrentIdx(data.articles[0].index);
+      // Normalize: handle array at top level or wrapped in .articles
+      const articles = Array.isArray(data) ? data : (data.articles ?? data.results ?? []);
+      if (!articles.length) { setError(`No articles returned. Raw response: ${JSON.stringify(data).slice(0, 300)}`); return; }
+      setResults(articles);
+      setCurrentIdx(articles[0].index ?? 0);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Request failed');
     } finally {
