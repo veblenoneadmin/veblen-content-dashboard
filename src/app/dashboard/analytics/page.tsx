@@ -67,11 +67,11 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Analytics</h1>
+          <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Analytics</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>Performance overview across all platforms</p>
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>

@@ -18,10 +18,10 @@ export default function NewsPage() {
   });
 
   return (
-    <div style={{ padding: '32px', maxWidth: '900px' }}>
+    <div style={{ maxWidth: '900px' }}>
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Industry News</h1>
+        <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Industry News</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>{newsItems.length} items · Updated just now</p>
       </div>
 
