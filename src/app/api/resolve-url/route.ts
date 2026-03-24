@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Google News article IDs are base64url-encoded and contain the real URL in the payload.
+// Google News article IDs are base64url-encoded protobuf containing the real URL.
+// We find https:// directly in the raw buffer bytes to avoid protobuf byte corruption.
 function decodeGoogleNewsId(url: string): string | null {
   try {
     const match = url.match(/\/articles\/([A-Za-z0-9_-]+)/);
     if (!match) return null;
-    // Convert base64url → base64, then decode
     const base64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = Buffer.from(base64, 'base64').toString('latin1');
-    // The real URL is embedded as UTF-8 text — find the first http(s):// occurrence
-    const urlMatch = decoded.match(/https?:\/\/[^\s\x00-\x1f"'<>\\]+/);
-    return urlMatch ? urlMatch[0].replace(/[^a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=%]+$/, '') : null;
+    const buf = Buffer.from(base64, 'base64');
+    for (const prefix of ['https://', 'http://']) {
+      const idx = buf.indexOf(Buffer.from(prefix, 'ascii'));
+      if (idx !== -1) {
+        // Walk forward collecting only printable ASCII (valid URL chars)
+        let end = idx;
+        while (end < buf.length && buf[end] >= 33 && buf[end] <= 126) end++;
+        return buf.slice(idx, end).toString('ascii');
+      }
+    }
+    return null;
   } catch {
     return null;
   }

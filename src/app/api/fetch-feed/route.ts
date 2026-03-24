@@ -36,12 +36,19 @@ function parseRss(xml: string, sourceName: string) {
     const desc    = parseCdata(block.match(/<description[^>]*>([\s\S]*?)<\/description>/)?.[1] ?? block.match(/<summary[^>]*>([\s\S]*?)<\/summary>/)?.[1] ?? '');
     const pubDate = parseCdata(block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/)?.[1] ?? block.match(/<published[^>]*>([\s\S]*?)<\/published>/)?.[1] ?? '');
     if (!title) continue;
+
+    // Google News RSS descriptions contain the real article URL as an <a href>.
+    // Extract it so news items carry the real URL instead of the news.google.com redirect.
+    const descDecoded = decodeEntities(parseCdata(block.match(/<description[^>]*>([\s\S]*?)<\/description>/)?.[1] ?? ''));
+    const descLink = descDecoded.match(/<a\s+[^>]*href=["']([^"']+)["']/i)?.[1];
+    const resolvedUrl = (descLink && !descLink.includes('google.com')) ? descLink : (link || undefined);
+
     items.push({
       id: `${sourceName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       source: sourceName,
       title: stripHtml(title),
       summary: stripHtml(desc).slice(0, 280),
-      url: link || undefined,
+      url: resolvedUrl,
       timeAgo: pubDate ? timeAgo(pubDate) : 'recently',
     });
   }
@@ -72,7 +79,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const headers: Record<string, string> = { 'User-Agent': 'VeblenDashboard/1.0' };
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    if (apiKey) {
+      // Support both common auth styles: X-Api-Key (newsapi.org, etc.) and Authorization Bearer
+      headers['X-Api-Key'] = apiKey;
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
 
     const res  = await fetch(url, { headers, signal: AbortSignal.timeout(12000) });
     const text = await res.text();
