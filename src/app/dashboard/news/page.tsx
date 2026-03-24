@@ -112,9 +112,9 @@ export default function NewsPage() {
           ) : (
             <button
               onClick={() => setAddingSource(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '9px 12px', background: 'transparent', border: 'none', color: 'var(--text-faint)', fontSize: '12px', cursor: 'pointer', marginBottom: '-1px', borderBottom: '2px solid transparent' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--accent)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-faint)'}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', marginBottom: '8px', background: 'var(--accent-tint)', border: '1px solid var(--accent)', borderRadius: '8px', color: 'var(--accent)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'opacity 0.15s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.75'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
             >
               <Plus size={13} />Add source
             </button>
