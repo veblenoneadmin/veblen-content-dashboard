@@ -70,15 +70,26 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
     if (!validSources.length) { setError('Please provide at least one source URL.'); return; }
     startLoading();
     try {
+      // Resolve redirect URLs (e.g. Google News proxy links) before sending to n8n
+      const resolvedSources = await Promise.all(
+        validSources.map(async (url) => {
+          if (!url.includes('news.google.com') && !url.includes('rss/articles')) return url;
+          try {
+            const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            return data.url ?? url;
+          } catch { return url; }
+        })
+      );
+
       const payload = {
-        articles: [{ sources: validSources, topic: topic.trim() }],
+        articles: [{ sources: resolvedSources, topic: topic.trim() }],
         tone, mood,
         ...(wordCount ? { wordCount: parseInt(wordCount) } : {}),
       };
       const res  = await fetch('/api/generate-articles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || `HTTP ${res.status}`); return; }
-      // Normalize: handle array at top level or wrapped in .articles
       const articles = Array.isArray(data) ? data : (data.articles ?? data.results ?? []);
       if (!articles.length) { setError(`No articles returned. Raw response: ${JSON.stringify(data).slice(0, 300)}`); return; }
       setResults(articles);
