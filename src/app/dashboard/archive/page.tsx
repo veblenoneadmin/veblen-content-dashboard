@@ -1,12 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FileText, Trash2, ChevronDown, ChevronUp, Clock, Tag, Copy, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { FileText, Trash2, ChevronDown, ChevronUp, Clock, Tag, Copy, Check, Send } from 'lucide-react';
 
 const VS = {
   bg0: '#1e1e1e', bg1: '#252526', bg2: '#2d2d2d', bg3: '#333333',
   border: '#3c3c3c', text0: '#f0f0f0', text1: '#c0c0c0', text2: '#909090',
   accent: '#007acc', error: '#f44747', green: '#4ec9b0',
+};
+
+const PLATFORMS = ['Instagram', 'LinkedIn', 'YouTube'] as const;
+type Platform = typeof PLATFORMS[number];
+
+const PLATFORM_COLORS: Record<Platform, string> = {
+  Instagram: '#E1306C',
+  LinkedIn:  '#0A66C2',
+  YouTube:   '#FF0000',
 };
 
 type ArticleSummary = {
@@ -41,6 +50,22 @@ function ArticleCard({ article, onDelete }: { article: ArticleSummary; onDelete:
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPostMenu, setShowPostMenu] = useState(false);
+  const [posting, setPosting] = useState<Platform | null>(null);
+  const [posted, setPosted] = useState<Platform | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showPostMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowPostMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showPostMenu]);
 
   const handleExpand = async () => {
     if (!expanded && !full) {
@@ -69,6 +94,27 @@ function ArticleCard({ article, onDelete }: { article: ArticleSummary; onDelete:
       await fetch(`/api/articles/${article.id}`, { method: 'DELETE' });
       onDelete(article.id);
     } catch { setDeleting(false); }
+  };
+
+  const handlePost = async (platform: Platform) => {
+    setShowPostMenu(false);
+    setPosting(platform);
+    try {
+      await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: article.topic || 'Untitled Article',
+          caption: full?.articleText ?? '',
+          platform,
+          type: platform === 'YouTube' ? 'Video' : platform === 'Instagram' ? 'Reel' : 'Static',
+          status: 'Ready',
+        }),
+      });
+      setPosted(platform);
+      setTimeout(() => setPosted(null), 3000);
+    } catch { /* silently fail */ }
+    setPosting(null);
   };
 
   const sources = full?.sourceUrls ? (() => {
@@ -105,7 +151,75 @@ function ArticleCard({ article, onDelete }: { article: ArticleSummary; onDelete:
             </span>
           </div>
         </div>
+
+        {/* Action buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+
+          {/* Post button + dropdown */}
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowPostMenu(v => !v)}
+              disabled={!!posting}
+              style={{
+                background: posted ? `${VS.green}22` : VS.bg2,
+                border: `1px solid ${posted ? VS.green : VS.border}`,
+                borderRadius: '6px',
+                padding: '4px 10px',
+                cursor: 'pointer',
+                color: posted ? VS.green : VS.text1,
+                fontSize: '12px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                opacity: posting ? 0.6 : 1,
+              }}
+            >
+              {posted ? <Check size={12} /> : <Send size={12} />}
+              {posting ? `Posting…` : posted ? `Posted to ${posted}` : 'Post'}
+            </button>
+
+            {showPostMenu && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                right: 0,
+                background: VS.bg2,
+                border: `1px solid ${VS.border}`,
+                borderRadius: '8px',
+                overflow: 'hidden',
+                zIndex: 50,
+                minWidth: '130px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              }}>
+                {PLATFORMS.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => handlePost(p)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '9px 14px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: VS.text1,
+                      fontSize: '13px',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = VS.bg3}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+                  >
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: PLATFORM_COLORS[p], flexShrink: 0 }} />
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleDelete}
             disabled={deleting}
@@ -190,7 +304,6 @@ export default function ArchivePage() {
 
   return (
     <div style={{ padding: '32px', maxWidth: '860px' }}>
-      {/* Header */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: 700, color: VS.text0, margin: 0, marginBottom: '4px' }}>
           Article Archive
@@ -200,13 +313,8 @@ export default function ArchivePage() {
         </p>
       </div>
 
-      {/* States */}
-      {loading && (
-        <div style={{ color: VS.text2, fontSize: '13px' }}>Loading articles…</div>
-      )}
-      {!loading && error && (
-        <div style={{ color: VS.error, fontSize: '13px' }}>{error}</div>
-      )}
+      {loading && <div style={{ color: VS.text2, fontSize: '13px' }}>Loading articles…</div>}
+      {!loading && error && <div style={{ color: VS.error, fontSize: '13px' }}>{error}</div>}
       {!loading && !error && articles.length === 0 && (
         <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '10px', padding: '48px', textAlign: 'center' }}>
           <FileText size={32} style={{ color: VS.text2, marginBottom: '12px' }} />
@@ -214,7 +322,6 @@ export default function ArchivePage() {
         </div>
       )}
 
-      {/* Article list */}
       {!loading && !error && articles.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {articles.map(a => (
