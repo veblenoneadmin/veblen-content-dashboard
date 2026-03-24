@@ -355,33 +355,11 @@ export default function NewsPage() {
                 style={{ width: '100%', padding: '6px 12px 6px 32px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
             </div>
 
-            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }} />
-
-            {/* Create Article button */}
-            <button
-              onClick={() => setShowModal(true)}
-              disabled={selected.size === 0}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: selected.size > 0 ? 'pointer' : 'not-allowed',
-                background: selected.size > 0 ? VS.accent : 'var(--bg-card)',
-                color: selected.size > 0 ? '#fff' : 'var(--text-muted)',
-                fontSize: '12px', fontWeight: 600,
-                borderColor: selected.size > 0 ? 'transparent' : 'var(--border)',
-                transition: 'opacity 0.15s',
-                opacity: selected.size === 0 ? 0.5 : 1,
-              }}
-              onMouseEnter={e => { if (selected.size > 0) (e.currentTarget as HTMLElement).style.opacity = '0.85'; }}
-              onMouseLeave={e => { if (selected.size > 0) (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-            >
-              <FileText size={13} />
-              Create Article{selected.size > 0 ? ` (${selected.size})` : ''}
-            </button>
           </div>
         </div>
 
         {/* ── Source tabs ── */}
-        <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '2px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap', flex: 1 }}>
             <TabBtn label="All" active={sourceTab === 'All'} onClick={() => setSourceTab('All')} />
             {newsSources.map(source => (
@@ -415,6 +393,28 @@ export default function NewsPage() {
               </button>
             )}
           </div>
+
+          {/* Create Article button */}
+          <button
+            onClick={() => setShowModal(true)}
+            disabled={selected.size === 0}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+              padding: '6px 14px', marginBottom: '8px', borderRadius: '8px',
+              border: `1px solid ${selected.size > 0 ? 'transparent' : 'var(--border)'}`,
+              cursor: selected.size > 0 ? 'pointer' : 'not-allowed',
+              background: selected.size > 0 ? VS.accent : 'var(--bg-card)',
+              color: selected.size > 0 ? '#fff' : 'var(--text-muted)',
+              fontSize: '12px', fontWeight: 600,
+              opacity: selected.size === 0 ? 0.45 : 1,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => { if (selected.size > 0) (e.currentTarget as HTMLElement).style.opacity = '0.85'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = selected.size === 0 ? '0.45' : '1'; }}
+          >
+            <FileText size={13} />
+            Create Article{selected.size > 0 ? ` (${selected.size})` : ''}
+          </button>
         </div>
 
         {/* ── News Feed ── */}
