@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2, CheckCircle2 } from 'lucide-react';
 
 // ── VS Dark palette ───────────────────────────────────────
 const VS = {
@@ -209,6 +209,7 @@ export default function CreateArticlePage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [viewMode, setViewMode]   = useState<'preview' | 'raw'>('preview');
   const [error, setError]         = useState('');
+  const [saved, setSaved]         = useState(false);
   const [formCollapsed, setFormCollapsed] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -279,6 +280,7 @@ export default function CreateArticlePage() {
       setResults(data.articles);
       setCurrentIdx(data.articles[0].index);
       setImgSrcs({});
+      setSaved(false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Request failed');
     } finally {
@@ -291,6 +293,23 @@ export default function CreateArticlePage() {
   const copyArticle = () => {
     if (!currentArticle) return;
     navigator.clipboard.writeText(currentArticle.articleText);
+  };
+
+  const saveArticle = async () => {
+    if (!currentArticle) return;
+    setSaved(false);
+    try {
+      await fetch('/api/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: currentArticle.topic || '',
+          articleText: currentArticle.articleText,
+          tone, mood,
+        }),
+      });
+      setSaved(true);
+    } catch { /* silently fail */ }
   };
   const downloadArticle = () => {
     if (!currentArticle) return;
@@ -529,6 +548,9 @@ export default function CreateArticlePage() {
                   </button>
                   <button onClick={downloadArticle} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}>
                     <Download size={11} /> .txt
+                  </button>
+                  <button onClick={saveArticle} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: `1px solid ${saved ? '#4ec9b0' : '#ddd'}`, background: saved ? 'rgba(78,201,176,0.1)' : '#fff', color: saved ? '#4ec9b0' : '#666', cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}>
+                    {saved ? <><CheckCircle2 size={11} />Saved</> : <><Copy size={11} />Save</>}
                   </button>
                 </>
               )}

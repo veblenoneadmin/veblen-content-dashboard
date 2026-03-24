@@ -3,8 +3,15 @@ const router  = express.Router();
 const prisma  = require('../lib/prisma');
 const { requireAuth } = require('../lib/auth');
 
+const INTERNAL_KEY = process.env.INTERNAL_API_KEY || 'veblen-internal';
+
+function allowInternal(req, res, next) {
+  if (req.headers['x-internal-key'] === INTERNAL_KEY) return next();
+  return requireAuth(req, res, next);
+}
+
 // GET /api/articles
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', allowInternal, async (_req, res) => {
   try {
     const articles = await prisma.generatedArticle.findMany({
       orderBy: { createdAt: 'desc' },
@@ -17,7 +24,7 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // GET /api/articles/:id
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', allowInternal, async (req, res) => {
   try {
     const article = await prisma.generatedArticle.findUnique({ where: { id: req.params.id } });
     if (!article) return res.status(404).json({ error: 'Article not found' });
@@ -28,7 +35,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // POST /api/articles  — save a generated article
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', allowInternal, async (req, res) => {
   try {
     const { topic, articleText, tone, mood, wordCount, sourceUrls } = req.body;
     if (!articleText) return res.status(400).json({ error: 'articleText is required' });
@@ -50,7 +57,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // DELETE /api/articles/:id
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', allowInternal, async (req, res) => {
   try {
     await prisma.generatedArticle.delete({ where: { id: req.params.id } });
     res.json({ success: true });

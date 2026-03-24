@@ -47,6 +47,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
   const [results, setResults] = useState<ArticleResult[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [error, setError]     = useState('');
+  const [saved, setSaved]     = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Resolve any redirect URLs (e.g. Google News) when the modal opens
@@ -84,6 +85,24 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
+  const handleSave = async () => {
+    if (!current) return;
+    setSaved(false);
+    try {
+      await fetch('/api/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: current.topic || topic,
+          articleText: current.articleText,
+          tone, mood,
+          sourceUrls: sources.filter(s => s.trim()),
+        }),
+      });
+      setSaved(true);
+    } catch { /* silently fail */ }
+  };
+
   const handleGenerate = async () => {
     setError('');
     const validSources = sources.filter(s => s.trim());
@@ -102,6 +121,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
       if (!articles.length) { setError(`No articles returned. URLs sent: ${validSources.join(', ')}`); return; }
       setResults(articles);
       setCurrentIdx(articles[0].index ?? 0);
+      setSaved(false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Request failed');
     } finally {
@@ -242,14 +262,24 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <span style={{ fontSize: '12px', color: VS.text2, fontFamily: 'monospace' }}>Generated article</span>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(current.articleText)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', color: VS.text1, fontSize: '11px', cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = VS.accent}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = VS.border}
-                  >
-                    <Copy size={12} />Copy
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(current.articleText)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', color: VS.text1, fontSize: '11px', cursor: 'pointer' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = VS.accent}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = VS.border}
+                    >
+                      <Copy size={12} />Copy
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', background: saved ? 'rgba(78,201,176,0.12)' : VS.bg2, border: `1px solid ${saved ? '#4ec9b0' : VS.border}`, borderRadius: '6px', color: saved ? '#4ec9b0' : VS.text1, fontSize: '11px', cursor: 'pointer' }}
+                      onMouseEnter={e => { if (!saved) (e.currentTarget as HTMLElement).style.borderColor = VS.accent; }}
+                      onMouseLeave={e => { if (!saved) (e.currentTarget as HTMLElement).style.borderColor = VS.border; }}
+                    >
+                      {saved ? <><CheckCircle2 size={12} />Saved</> : <><FileText size={12} />Save</>}
+                    </button>
+                  </div>
                 </div>
                 <pre style={{ fontFamily: 'inherit', fontSize: '13px', color: VS.text1, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
                   {current.articleText}
