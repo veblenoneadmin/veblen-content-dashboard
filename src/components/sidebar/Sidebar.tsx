@@ -13,6 +13,7 @@ import {
   BarChart2,
   CalendarDays,
   Users,
+  FileText,
 } from 'lucide-react';
 
 const navItems = [
@@ -23,6 +24,7 @@ const navItems = [
   { group: 'CREATE', label: 'YouTube', href: '/dashboard/youtube', icon: Play },
   { group: 'CREATE', label: 'Instagram', href: '/dashboard/instagram', icon: Camera },
   { group: 'CREATE', label: 'LinkedIn', href: '/dashboard/linkedin', icon: Briefcase },
+  { group: 'CREATE', label: 'Create Article', href: '/dashboard/create-article', icon: FileText },
   { group: 'INSIGHTS', label: 'Analytics', href: '/dashboard/analytics', icon: BarChart2 },
   { group: 'INSIGHTS', label: 'Calendar', href: '/dashboard/calendar', icon: CalendarDays },
   { group: 'INSIGHTS', label: 'Competitors', href: '/dashboard/competitors', icon: Users },
