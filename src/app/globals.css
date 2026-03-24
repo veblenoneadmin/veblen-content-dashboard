@@ -1,113 +1,74 @@
-@import '@fontsource/playfair-display/400.css';
-@import '@fontsource/playfair-display/700.css';
-@import '@fontsource/dm-sans/400.css';
-@import '@fontsource/dm-sans/500.css';
-@import '@fontsource/dm-sans/600.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Veblen (default) theme ── */
+/* ── VS Code Dark theme (EverSense palette) ── */
 :root {
-  --bg-primary:   #111111;
-  --bg-card:      #1A1A1A;
-  --bg-sidebar:   #141414;
-  --bg-input:     #111111;
-  --bg-chip-type: #333333;
-  --bg-calendar-empty: #161616;
+  --bg-primary:   #1e1e1e;
+  --bg-card:      #252526;
+  --bg-sidebar:   #252526;
+  --bg-input:     #3c3c3c;
+  --bg-chip-type: #3c3c3c;
+  --bg-calendar-empty: #1e1e1e;
 
-  --border:       #262626;
-  --border-light: #444444;
-  --border-input: #333333;
+  --border:       #3c3c3c;
+  --border-light: #454545;
+  --border-input: #3c3c3c;
 
-  --accent:       #D4845A;
-  --accent-light: #E8A87C;
-  --accent-tint:  rgba(212, 132, 90, 0.13);
+  --accent:       #007acc;
+  --accent-light: #4fc1ff;
+  --accent-tint:  rgba(0, 122, 204, 0.13);
 
-  --text-primary:   #FFFFFF;
-  --text-secondary: #AAAAAA;
-  --text-muted:     #888888;
-  --text-subtle:    #666666;
-  --text-faint:     #555555;
-  --text-inactive:  #999999;
-  --text-hover:     #CCCCCC;
-  --text-chip-type: #999999;
+  --text-primary:   #f0f0f0;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #909090;
+  --text-subtle:    #6a6a6a;
+  --text-faint:     #4d4d4d;
+  --text-inactive:  #909090;
+  --text-hover:     #f0f0f0;
+  --text-chip-type: #909090;
+
+  /* Status colours — same semantics, VS-adjusted */
+  --color-teal:   #4ec9b0;
+  --color-yellow: #dcdcaa;
+  --color-orange: #ce9178;
+  --color-purple: #c586c0;
+  --color-red:    #f44747;
+  --color-green:  #6a9955;
+  --color-blue:   #569cd6;
 
   /* shadcn/ui tokens */
   --radius: 0.625rem;
-  --background: #111111;
-  --foreground: #FFFFFF;
-  --card: #1A1A1A;
-  --card-foreground: #FFFFFF;
-  --popover: #1A1A1A;
-  --popover-foreground: #FFFFFF;
-  --primary: #D4845A;
-  --primary-foreground: #FFFFFF;
-  --secondary: #262626;
-  --secondary-foreground: #FFFFFF;
-  --muted: #1A1A1A;
-  --muted-foreground: #888888;
-  --accent-ui: #262626;
-  --accent-foreground: #FFFFFF;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border-color: #262626;
-  --input: #262626;
-  --ring: #D4845A;
-}
-
-/* ── VS Code Dark theme ── */
-[data-theme="vscode"] {
-  --bg-primary:   #1E1E1E;
-  --bg-card:      #252526;
-  --bg-sidebar:   #333333;
-  --bg-input:     #3C3C3C;
-  --bg-chip-type: #3C3C3C;
-  --bg-calendar-empty: #1E1E1E;
-
-  --border:       #3C3C3C;
-  --border-light: #555555;
-  --border-input: #3C3C3C;
-
-  --accent:       #007ACC;
-  --accent-light: #4FC1FF;
-  --accent-tint:  rgba(0, 122, 204, 0.13);
-
-  --text-primary:   #D4D4D4;
-  --text-secondary: #AAAAAA;
-  --text-muted:     #858585;
-  --text-subtle:    #6A6A6A;
-  --text-faint:     #4D4D4D;
-  --text-inactive:  #858585;
-  --text-hover:     #D4D4D4;
-  --text-chip-type: #858585;
-
-  /* shadcn/ui tokens */
-  --background: #1E1E1E;
-  --foreground: #D4D4D4;
+  --background: #1e1e1e;
+  --foreground: #f0f0f0;
   --card: #252526;
-  --card-foreground: #D4D4D4;
+  --card-foreground: #f0f0f0;
   --popover: #252526;
-  --popover-foreground: #D4D4D4;
-  --primary: #007ACC;
-  --primary-foreground: #FFFFFF;
-  --secondary: #3C3C3C;
-  --secondary-foreground: #D4D4D4;
+  --popover-foreground: #f0f0f0;
+  --primary: #007acc;
+  --primary-foreground: #ffffff;
+  --secondary: #3c3c3c;
+  --secondary-foreground: #f0f0f0;
   --muted: #252526;
-  --muted-foreground: #858585;
-  --accent-ui: #3C3C3C;
-  --accent-foreground: #D4D4D4;
-  --border-color: #3C3C3C;
-  --input: #3C3C3C;
-  --ring: #007ACC;
+  --muted-foreground: #909090;
+  --accent-ui: #3c3c3c;
+  --accent-foreground: #f0f0f0;
+  --destructive: #f44747;
+  --border-color: #3c3c3c;
+  --input: #3c3c3c;
+  --ring: #007acc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'DM Sans', sans-serif;
-  --font-mono: monospace;
-  --font-heading: 'Playfair Display', serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -134,18 +95,14 @@
 }
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
   html, body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     height: 100%;
     margin: 0;
     padding: 0;
   }
-  body {
-    min-height: 100vh;
-  }
+  body { min-height: 100vh; }
 }

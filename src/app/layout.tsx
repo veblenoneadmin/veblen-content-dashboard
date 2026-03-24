@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <body style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "'DM Sans', sans-serif", margin: 0, padding: 0 }}>
+      <body style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", margin: 0, padding: 0 }}>
         <DashboardProvider>
           {children}
         </DashboardProvider>
