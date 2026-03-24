@@ -483,6 +483,7 @@ export default function NewsPage() {
   const [view, setView]                 = useState<ViewMode>('list');
   const [showAddSource, setShowAddSource] = useState(false);
   const [fetchedItems, setFetchedItems] = useState<NewsItem[]>([]);
+  const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
   const [selected, setSelected]         = useState<Set<string>>(new Set());
   const [showModal, setShowModal]       = useState(false);
 
@@ -491,15 +492,24 @@ export default function NewsPage() {
     const urlSources = newsSourceConfigs.filter(c => (c.type === 'url' || c.type === 'api') && c.endpoint);
     if (!urlSources.length) return;
     let cancelled = false;
+    const errors: Record<string, string> = {};
     Promise.all(urlSources.map(async s => {
       try {
         const params = new URLSearchParams({ url: s.endpoint!, name: s.name, ...(s.apiKey ? { apiKey: s.apiKey } : {}) });
         const res  = await fetch(`/api/fetch-feed?${params}`);
         const data = await res.json();
+        if (data.error) { errors[s.name] = data.error; return []; }
+        if (data.warning) { errors[s.name] = data.warning; }
         return (data.items ?? []) as NewsItem[];
-      } catch { return []; }
+      } catch (e) {
+        errors[s.name] = String(e);
+        return [];
+      }
     })).then(results => {
-      if (!cancelled) setFetchedItems(results.flat());
+      if (!cancelled) {
+        setFetchedItems(results.flat());
+        setSourceErrors(errors);
+      }
     });
     return () => { cancelled = true; };
   }, [newsSourceConfigs]);
@@ -618,7 +628,12 @@ export default function NewsPage() {
             <TabBtn label="All" active={sourceTab === 'All'} onClick={() => setSourceTab('All')} />
             {newsSources.map(source => (
               <div key={source} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <TabBtn label={source} active={sourceTab === source} onClick={() => setSourceTab(source)} paddingRight={26} />
+                <TabBtn label={source} active={sourceTab === source} onClick={() => setSourceTab(source)} paddingRight={sourceErrors[source] ? 42 : 26} />
+                {sourceErrors[source] && (
+                  <span title={sourceErrors[source]} style={{ position: 'absolute', right: '22px', top: '50%', transform: 'translateY(-55%)', display: 'flex', color: '#f44747', cursor: 'help' }}>
+                    <AlertCircle size={11} />
+                  </span>
+                )}
                 <button onClick={() => handleRemoveSource(source)}
                   style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-55%)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--text-faint)', display: 'flex' }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#f44747'}
