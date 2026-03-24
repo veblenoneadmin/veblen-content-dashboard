@@ -39,9 +39,11 @@ function parseRss(xml: string, sourceName: string) {
 
     // Google News RSS descriptions contain the real article URL as an <a href>.
     // Extract it so news items carry the real URL instead of the news.google.com redirect.
-    const descDecoded = decodeEntities(parseCdata(block.match(/<description[^>]*>([\s\S]*?)<\/description>/)?.[1] ?? ''));
+    const descRaw = block.match(/<description[^>]*>([\s\S]*?)<\/description>/)?.[1] ?? '';
+    const descDecoded = decodeEntities(parseCdata(descRaw));
     const descLink = descDecoded.match(/<a\s+[^>]*href=["']([^"']+)["']/i)?.[1];
     const resolvedUrl = (descLink && !descLink.includes('google.com')) ? descLink : (link || undefined);
+    console.log('[fetch-feed] title:', stripHtml(title).slice(0, 60), '| link:', link?.slice(0, 60), '| descLink:', descLink?.slice(0, 80), '| resolved:', resolvedUrl?.slice(0, 80));
 
     items.push({
       id: `${sourceName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
