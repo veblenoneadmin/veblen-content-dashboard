@@ -91,7 +91,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || `HTTP ${res.status}`); return; }
       const articles = Array.isArray(data) ? data : (data.articles ?? data.results ?? []);
-      if (!articles.length) { setError(`No articles returned. Raw response: ${JSON.stringify(data).slice(0, 300)}`); return; }
+      if (!articles.length) { setError(`No articles returned. URLs sent: ${resolvedSources.join(', ')}`); return; }
       setResults(articles);
       setCurrentIdx(articles[0].index ?? 0);
     } catch (e: unknown) {
