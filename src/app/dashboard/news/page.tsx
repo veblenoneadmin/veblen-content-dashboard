@@ -40,6 +40,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
   const [mood, setMood]       = useState('News Report');
   const [topic, setTopic]     = useState('');
   const [sources, setSources] = useState<string[]>(initialUrls.length ? initialUrls : ['']);
+  const [resolving, setResolving] = useState(false);
   const [wordCount, setWordCount] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
@@ -47,6 +48,25 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
   const [currentIdx, setCurrentIdx] = useState(0);
   const [error, setError]     = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Resolve any redirect URLs (e.g. Google News) when the modal opens
+  useEffect(() => {
+    if (!initialUrls.length) return;
+    setResolving(true);
+    Promise.all(
+      initialUrls.map(async (url) => {
+        try {
+          const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
+          const data = await res.json();
+          return (data.url && data.url !== url) ? data.url : url;
+        } catch { return url; }
+      })
+    ).then(resolved => {
+      setSources(resolved);
+      setResolving(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inp: React.CSSProperties = { background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '8px 11px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontFamily: 'monospace', color: VS.text2, textTransform: 'uppercase' as const, letterSpacing: '1.2px', marginBottom: '4px' };
@@ -70,19 +90,8 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
     if (!validSources.length) { setError('Please provide at least one source URL.'); return; }
     startLoading();
     try {
-      // Resolve redirect URLs (e.g. Google News proxy links) before sending to n8n
-      const resolvedSources = await Promise.all(
-        validSources.map(async (url) => {
-          try {
-            const res = await fetch(`/api/resolve-url?url=${encodeURIComponent(url)}`);
-            const data = await res.json();
-            return data.url ?? url;
-          } catch { return url; }
-        })
-      );
-
       const payload = {
-        articles: [{ sources: resolvedSources, topic: topic.trim() }],
+        articles: [{ sources: validSources, topic: topic.trim() }],
         tone, mood,
         ...(wordCount ? { wordCount: parseInt(wordCount) } : {}),
       };
@@ -90,7 +99,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || `HTTP ${res.status}`); return; }
       const articles = Array.isArray(data) ? data : (data.articles ?? data.results ?? []);
-      if (!articles.length) { setError(`No articles returned. URLs sent: ${resolvedSources.join(', ')}`); return; }
+      if (!articles.length) { setError(`No articles returned. URLs sent: ${validSources.join(', ')}`); return; }
       setResults(articles);
       setCurrentIdx(articles[0].index ?? 0);
     } catch (e: unknown) {
@@ -173,7 +182,14 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
             {/* Source URLs */}
             <div style={{ marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <label style={{ ...lbl, marginBottom: 0 }}>Source URLs</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ ...lbl, marginBottom: 0 }}>Source URLs</label>
+                  {resolving && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', fontFamily: 'monospace', color: VS.text2 }}>
+                      <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />resolving…
+                    </span>
+                  )}
+                </div>
                 <button onClick={() => setSources(s => [...s, ''])}
                   style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontFamily: 'monospace', color: VS.accent, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   <Plus size={11} />Add URL
