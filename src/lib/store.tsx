@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Post, Competitor, NewsItem } from './types';
+import { Post, Competitor, NewsItem, NewsSourceConfig } from './types';
 import { samplePosts, sampleCompetitors, sampleNews } from './data';
 
 type Theme = 'veblen' | 'vscode';
@@ -10,22 +10,29 @@ interface DashboardContextType {
   posts: Post[];
   competitors: Competitor[];
   newsItems: NewsItem[];
-  newsSources: string[];
+  newsSourceConfigs: NewsSourceConfig[];
+  newsSources: string[]; // derived — names only, for tab filtering
   theme: Theme;
   toggleTheme: () => void;
   addPost: (post: Omit<Post, 'id' | 'createdAt'>) => void;
   updatePost: (id: string, updates: Partial<Post>) => void;
-  addNewsSource: (source: string) => void;
-  removeNewsSource: (source: string) => void;
+  addNewsSourceConfig: (config: NewsSourceConfig) => void;
+  removeNewsSource: (name: string) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+
+const defaultSources: NewsSourceConfig[] = [
+  { id: 'reddit',    name: 'Reddit',    type: 'url' },
+  { id: 'rss',       name: 'RSS',       type: 'url' },
+  { id: 'localllama',name: 'LocalLLaMA',type: 'url' },
+];
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>(samplePosts);
   const [competitors] = useState<Competitor[]>(sampleCompetitors);
   const [newsItems] = useState<NewsItem[]>(sampleNews);
-  const [newsSources, setNewsSources] = useState<string[]>(['Reddit', 'RSS', 'LocalLLaMA']);
+  const [newsSourceConfigs, setNewsSourceConfigs] = useState<NewsSourceConfig[]>(defaultSources);
   const [theme, setTheme] = useState<Theme>('vscode');
 
   useEffect(() => {
@@ -34,34 +41,30 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = () => setTheme((t) => (t === 'veblen' ? 'vscode' : 'veblen'));
 
-  const addNewsSource = (source: string) => {
-    const trimmed = source.trim();
-    if (trimmed && !newsSources.includes(trimmed)) {
-      setNewsSources(prev => [...prev, trimmed]);
-    }
+  const addNewsSourceConfig = (config: NewsSourceConfig) => {
+    setNewsSourceConfigs(prev => {
+      if (prev.some(s => s.name === config.name)) return prev;
+      return [...prev, config];
+    });
   };
 
-  const removeNewsSource = (source: string) => {
-    setNewsSources(prev => prev.filter(s => s !== source));
+  const removeNewsSource = (name: string) => {
+    setNewsSourceConfigs(prev => prev.filter(s => s.name !== name));
   };
 
   const addPost = (postData: Omit<Post, 'id' | 'createdAt'>) => {
-    const newPost: Post = {
-      ...postData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setPosts((prev) => [newPost, ...prev]);
+    const newPost: Post = { ...postData, id: Date.now().toString(), createdAt: new Date().toISOString() };
+    setPosts(prev => [newPost, ...prev]);
   };
 
   const updatePost = (id: string, updates: Partial<Post>) => {
-    setPosts((prev) =>
-      prev.map((post) => (post.id === id ? { ...post, ...updates } : post))
-    );
+    setPosts(prev => prev.map(post => post.id === id ? { ...post, ...updates } : post));
   };
 
+  const newsSources = newsSourceConfigs.map(c => c.name);
+
   return (
-    <DashboardContext.Provider value={{ posts, competitors, newsItems, newsSources, theme, toggleTheme, addPost, updatePost, addNewsSource, removeNewsSource }}>
+    <DashboardContext.Provider value={{ posts, competitors, newsItems, newsSourceConfigs, newsSources, theme, toggleTheme, addPost, updatePost, addNewsSourceConfig, removeNewsSource }}>
       {children}
     </DashboardContext.Provider>
   );
@@ -69,8 +72,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
 export function useDashboard() {
   const context = useContext(DashboardContext);
-  if (!context) {
-    throw new Error('useDashboard must be used within a DashboardProvider');
-  }
+  if (!context) throw new Error('useDashboard must be used within a DashboardProvider');
   return context;
 }

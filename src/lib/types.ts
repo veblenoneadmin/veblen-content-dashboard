@@ -36,6 +36,15 @@ export interface NewsItem {
   url?: string;
 }
 
+export interface NewsSourceConfig {
+  id: string;
+  name: string;
+  type: 'url' | 'api' | 'webhook';
+  endpoint?: string;   // RSS/JSON URL for 'url', API endpoint for 'api'
+  apiKey?: string;     // bearer token / api key for 'api'
+  webhookId?: string;  // generated id for 'webhook'
+}
+
 export interface MonthlyMetric {
   month: string;
   instagram: number;

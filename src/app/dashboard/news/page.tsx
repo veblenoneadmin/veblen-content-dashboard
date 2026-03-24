@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useDashboard } from '@/lib/store';
+import { NewsSourceConfig, NewsItem } from '@/lib/types';
 import {
   Search, ThumbsUp, Clock, Plus, X, ArrowUpDown, ExternalLink,
   List, LayoutGrid, Grid3x3, FileText, Loader2, Copy, ChevronRight,
+  Globe, Webhook, KeyRound, CheckCircle2, AlertCircle,
 } from 'lucide-react';
 
 type SortOption = 'newest' | 'upvotes';
@@ -239,26 +241,243 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
   );
 }
 
+// ── Add Source Modal ───────────────────────────────────────
+type SourceType = 'url' | 'api' | 'webhook';
+
+const SOURCE_TYPES: { value: SourceType; label: string; icon: React.ElementType; desc: string }[] = [
+  { value: 'url',     label: 'URL',     icon: Globe,   desc: 'RSS feed or JSON feed URL' },
+  { value: 'api',     label: 'API',     icon: KeyRound, desc: 'REST API endpoint returning articles' },
+  { value: 'webhook', label: 'Webhook', icon: Webhook, desc: 'Receive articles via POST webhook' },
+];
+
+function AddSourceModal({ onAdd, onClose }: {
+  onAdd: (config: NewsSourceConfig) => void;
+  onClose: () => void;
+}) {
+  const [name, setName]         = useState('');
+  const [type, setType]         = useState<SourceType>('url');
+  const [endpoint, setEndpoint] = useState('');
+  const [apiKey, setApiKey]     = useState('');
+  const [status, setStatus]     = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
+  const [errMsg, setErrMsg]     = useState('');
+
+  const webhookId = useRef(`wh_${Math.random().toString(36).slice(2, 10)}`);
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/webhook/${webhookId.current}`
+    : `/api/webhook/${webhookId.current}`;
+
+  const canSave = name.trim() && (type === 'webhook' || endpoint.trim());
+
+  const handleTest = async () => {
+    if (!endpoint.trim()) return;
+    setStatus('testing'); setErrMsg('');
+    try {
+      const params = new URLSearchParams({ url: endpoint, name: name || 'Test', ...(apiKey ? { apiKey } : {}) });
+      const res  = await fetch(`/api/fetch-feed?${params}`);
+      const data = await res.json();
+      if (data.error) { setStatus('error'); setErrMsg(data.error); }
+      else { setStatus('ok'); }
+    } catch (e) {
+      setStatus('error'); setErrMsg(String(e));
+    }
+  };
+
+  const handleSave = () => {
+    if (!canSave) return;
+    const config: NewsSourceConfig = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      type,
+      ...(type !== 'webhook' && endpoint.trim() ? { endpoint: endpoint.trim() } : {}),
+      ...(type === 'api' && apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+      ...(type === 'webhook' ? { webhookId: webhookId.current } : {}),
+    };
+    onAdd(config);
+    onClose();
+  };
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '8px 11px', background: VS.bg2,
+    border: `1px solid ${VS.border}`, borderRadius: '7px',
+    color: VS.text0, fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+  };
+  const lbl: React.CSSProperties = {
+    display: 'block', fontSize: '10px', color: VS.text2,
+    fontWeight: 600, letterSpacing: '0.05em', marginBottom: '5px',
+    textTransform: 'uppercase' as const,
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ width: '100%', maxWidth: '480px', background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.8)' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${VS.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={15} style={{ color: VS.accent }} />
+            <span style={{ fontSize: '14px', fontWeight: 600, color: VS.text0 }}>Add Source</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, display: 'flex' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = VS.text0}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = VS.text2}
+          ><X size={16} /></button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          {/* Name */}
+          <div>
+            <label style={lbl}>Source name</label>
+            <input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. TechCrunch" autoFocus />
+          </div>
+
+          {/* Type selector */}
+          <div>
+            <label style={lbl}>Source type</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {SOURCE_TYPES.map(({ value, label, icon: Icon, desc }) => (
+                <button
+                  key={value}
+                  onClick={() => { setType(value); setStatus('idle'); setErrMsg(''); }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    padding: '12px 8px', borderRadius: '8px', cursor: 'pointer',
+                    border: `1px solid ${type === value ? VS.accent : VS.border}`,
+                    background: type === value ? VS.accentGlow : VS.bg2,
+                    color: type === value ? VS.accent : VS.text2,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <Icon size={18} />
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>{label}</span>
+                  <span style={{ fontSize: '10px', textAlign: 'center', lineHeight: 1.3, color: type === value ? VS.accent : VS.text2, opacity: 0.8 }}>{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Type-specific inputs */}
+          {type === 'url' && (
+            <div>
+              <label style={lbl}>Feed URL</label>
+              <input style={inp} value={endpoint} onChange={e => { setEndpoint(e.target.value); setStatus('idle'); }} placeholder="https://example.com/rss.xml" />
+            </div>
+          )}
+
+          {type === 'api' && (
+            <>
+              <div>
+                <label style={lbl}>API Endpoint</label>
+                <input style={inp} value={endpoint} onChange={e => { setEndpoint(e.target.value); setStatus('idle'); }} placeholder="https://api.example.com/articles" />
+              </div>
+              <div>
+                <label style={lbl}>API Key <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
+                <input style={inp} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Bearer token or API key" type="password" />
+              </div>
+            </>
+          )}
+
+          {type === 'webhook' && (
+            <div>
+              <label style={lbl}>Your Webhook URL</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input style={{ ...inp, flex: 1, color: VS.text2, fontSize: '12px', fontFamily: 'monospace' }} value={webhookUrl} readOnly />
+                <button
+                  onClick={() => navigator.clipboard.writeText(webhookUrl)}
+                  style={{ flexShrink: 0, padding: '8px 12px', background: VS.bg3, border: `1px solid ${VS.border}`, borderRadius: '7px', color: VS.text1, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Copy size={12} />Copy
+                </button>
+              </div>
+              <p style={{ fontSize: '11px', color: VS.text2, marginTop: '8px', lineHeight: 1.5 }}>
+                POST <code style={{ background: VS.bg3, padding: '1px 5px', borderRadius: '3px' }}>{'{ title, summary, url }'}</code> to this endpoint to push items into your feed.
+              </p>
+            </div>
+          )}
+
+          {/* Test result */}
+          {status === 'testing' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: VS.text2 }}>
+              <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />Testing connection…
+            </div>
+          )}
+          {status === 'ok' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#4ec9b0' }}>
+              <CheckCircle2 size={14} />Connection successful — feed is reachable
+            </div>
+          )}
+          {status === 'error' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: VS.error }}>
+              <AlertCircle size={14} />{errMsg || 'Could not reach the feed'}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', gap: '8px', padding: '14px 20px', borderTop: `1px solid ${VS.border}`, justifyContent: 'flex-end' }}>
+          {type !== 'webhook' && (
+            <button
+              onClick={handleTest}
+              disabled={!endpoint.trim() || status === 'testing'}
+              style={{ padding: '8px 14px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '8px', color: VS.text1, fontSize: '12px', cursor: endpoint.trim() ? 'pointer' : 'not-allowed', opacity: endpoint.trim() ? 1 : 0.5 }}
+            >
+              Test connection
+            </button>
+          )}
+          <button onClick={onClose} style={{ padding: '8px 14px', background: 'transparent', border: `1px solid ${VS.border}`, borderRadius: '8px', color: VS.text2, fontSize: '12px', cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            style={{ padding: '8px 16px', background: canSave ? VS.accent : VS.bg3, border: 'none', borderRadius: '8px', color: canSave ? '#fff' : VS.text2, fontSize: '12px', fontWeight: 600, cursor: canSave ? 'pointer' : 'not-allowed', transition: 'opacity 0.15s' }}
+            onMouseEnter={e => { if (canSave) (e.currentTarget as HTMLElement).style.opacity = '0.85'; }}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+          >
+            Add source
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 // ── News Page ──────────────────────────────────────────────
 export default function NewsPage() {
-  const { newsItems, newsSources, addNewsSource, removeNewsSource } = useDashboard();
+  const { newsItems, newsSources, newsSourceConfigs, addNewsSourceConfig, removeNewsSource } = useDashboard();
   const [search, setSearch]             = useState('');
   const [sourceTab, setSourceTab]       = useState('All');
   const [sort, setSort]                 = useState<SortOption>('newest');
   const [onlyWithUpvotes, setOnlyWithUpvotes] = useState(false);
   const [onlyWithLink, setOnlyWithLink] = useState(false);
   const [view, setView]                 = useState<ViewMode>('list');
-  const [addingSource, setAddingSource] = useState(false);
-  const [newSourceInput, setNewSourceInput] = useState('');
+  const [showAddSource, setShowAddSource] = useState(false);
+  const [fetchedItems, setFetchedItems] = useState<NewsItem[]>([]);
   const [selected, setSelected]         = useState<Set<string>>(new Set());
   const [showModal, setShowModal]       = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (addingSource) inputRef.current?.focus(); }, [addingSource]);
+  // Fetch items from URL/API sources whenever configs change
+  useEffect(() => {
+    const urlSources = newsSourceConfigs.filter(c => (c.type === 'url' || c.type === 'api') && c.endpoint);
+    if (!urlSources.length) return;
+    let cancelled = false;
+    Promise.all(urlSources.map(async s => {
+      try {
+        const params = new URLSearchParams({ url: s.endpoint!, name: s.name, ...(s.apiKey ? { apiKey: s.apiKey } : {}) });
+        const res  = await fetch(`/api/fetch-feed?${params}`);
+        const data = await res.json();
+        return (data.items ?? []) as NewsItem[];
+      } catch { return []; }
+    })).then(results => {
+      if (!cancelled) setFetchedItems(results.flat());
+    });
+    return () => { cancelled = true; };
+  }, [newsSourceConfigs]);
 
-  const handleAddSource = () => {
-    if (newSourceInput.trim()) addNewsSource(newSourceInput.trim());
-    setNewSourceInput(''); setAddingSource(false);
+  const handleAddConfig = (config: NewsSourceConfig) => {
+    addNewsSourceConfig(config);
   };
 
   const handleRemoveSource = (source: string) => {
@@ -276,7 +495,9 @@ export default function NewsPage() {
 
   const activeFilterCount = [sort !== 'newest', onlyWithUpvotes, onlyWithLink].filter(Boolean).length;
 
-  let filtered = newsItems.filter(item => {
+  const allItems = [...newsItems, ...fetchedItems];
+
+  let filtered = allItems.filter(item => {
     if (search.trim() && !item.title.toLowerCase().includes(search.toLowerCase()) && !item.summary.toLowerCase().includes(search.toLowerCase())) return false;
     if (sourceTab !== 'All' && item.source !== sourceTab) return false;
     if (onlyWithUpvotes && !item.upvotes) return false;
@@ -285,7 +506,7 @@ export default function NewsPage() {
   });
   if (sort === 'upvotes') filtered = [...filtered].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0));
 
-  const selectedUrls = newsItems
+  const selectedUrls = allItems
     .filter(n => selected.has(n.id) && n.url)
     .map(n => n.url as string);
 
@@ -297,6 +518,12 @@ export default function NewsPage() {
           onClose={() => setShowModal(false)}
         />
       )}
+      {showAddSource && (
+        <AddSourceModal
+          onAdd={handleAddConfig}
+          onClose={() => setShowAddSource(false)}
+        />
+      )}
 
       <div>
         {/* ── Header ── */}
@@ -304,7 +531,7 @@ export default function NewsPage() {
           <div>
             <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Industry News</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
-              {filtered.length} of {newsItems.length} items
+              {filtered.length} of {allItems.length} items
               {selected.size > 0 && <span style={{ marginLeft: '10px', color: 'var(--accent)', fontWeight: 600 }}>· {selected.size} selected</span>}
             </p>
           </div>
@@ -373,24 +600,13 @@ export default function NewsPage() {
                 </button>
               </div>
             ))}
-            {addingSource ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px' }}>
-                <input ref={inputRef} value={newSourceInput} onChange={e => setNewSourceInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAddSource(); if (e.key === 'Escape') { setAddingSource(false); setNewSourceInput(''); } }}
-                  placeholder="Source name..."
-                  style={{ width: '120px', padding: '4px 8px', fontSize: '12px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--accent)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none' }} />
-                <button onClick={handleAddSource} style={{ padding: '4px 10px', fontSize: '12px', backgroundColor: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Add</button>
-                <button onClick={() => { setAddingSource(false); setNewSourceInput(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}><X size={14} /></button>
-              </div>
-            ) : (
-              <button onClick={() => setAddingSource(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', marginBottom: '8px', background: 'var(--accent-tint)', border: '1px solid var(--accent)', borderRadius: '8px', color: 'var(--accent)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.75'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
-              >
-                <Plus size={13} />Add source
-              </button>
-            )}
+            <button onClick={() => setShowAddSource(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', marginBottom: '8px', background: 'var(--accent-tint)', border: '1px solid var(--accent)', borderRadius: '8px', color: 'var(--accent)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.75'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+            >
+              <Plus size={13} />Add source
+            </button>
           </div>
 
           {/* Create Article button */}
@@ -435,7 +651,7 @@ export default function NewsPage() {
                   key={item.id}
                   onClick={() => toggleSelect(item.id)}
                   style={{
-                    backgroundColor: isSelected ? 'rgba(255,128,0,0.06)' : 'var(--bg-card)',
+                    backgroundColor: isSelected ? VS.accentGlow : 'var(--bg-card)',
                     border: `1px solid ${isSelected ? VS.accent : 'var(--border)'}`,
                     borderLeft: `3px solid ${isSelected ? VS.accent : 'var(--accent)'}`,
                     borderRadius: '0 10px 10px 0',
