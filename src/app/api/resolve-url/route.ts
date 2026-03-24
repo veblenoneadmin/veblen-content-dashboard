@@ -73,35 +73,61 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Try decoding the URL directly from the base64 path first (no fetch needed)
+  // Strategy 1: decode the base64 protobuf path
   const decoded = decodeGoogleNewsId(url);
   if (decoded) return NextResponse.json({ url: decoded });
 
-  // Fallback: fetch the page and extract the real URL from HTML
+  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+  // Strategy 2: redirect:manual on the clean /articles/ URL — grab the raw Location header
+  // before any consent/JS redirect chain kicks in
+  try {
+    const cleanUrl = url.replace('/rss/articles/', '/articles/').split('?')[0];
+    const manualRes = await fetch(cleanUrl, {
+      redirect: 'manual',
+      headers: { 'User-Agent': ua },
+      signal: AbortSignal.timeout(6000),
+    });
+    const location = manualRes.headers.get('location');
+    if (location && !location.includes('google.com')) {
+      return NextResponse.json({ url: location });
+    }
+  } catch { /* continue */ }
+
+  // Strategy 3: redirect:manual on the original URL
+  try {
+    const manualRes = await fetch(url, {
+      redirect: 'manual',
+      headers: { 'User-Agent': ua },
+      signal: AbortSignal.timeout(6000),
+    });
+    const location = manualRes.headers.get('location');
+    if (location && !location.includes('google.com')) {
+      return NextResponse.json({ url: location });
+    }
+  } catch { /* continue */ }
+
+  // Strategy 4: follow redirects, check final URL, then parse HTML
   try {
     const res = await fetch(url, {
       redirect: 'follow',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'User-Agent': ua,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Cache-Control': 'no-cache',
       },
       signal: AbortSignal.timeout(12000),
     });
 
-    // If fetch already redirected away from Google, we're done
     if (res.url && !res.url.includes('google.com')) {
       return NextResponse.json({ url: res.url });
     }
 
-    // Parse HTML for the real URL
     const html = await res.text();
     const extracted = extractFromGoogleHtml(html);
     if (extracted) return NextResponse.json({ url: extracted });
 
-    // Last resort: return wherever fetch landed
     return NextResponse.json({ url: res.url || url });
   } catch (e) {
     return NextResponse.json({ url, error: String(e) });
