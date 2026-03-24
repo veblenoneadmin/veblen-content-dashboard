@@ -7,24 +7,22 @@ import {
   Newspaper,
   Hash,
   Layout,
-  Youtube,
-  Instagram,
-  Linkedin,
+  Play,
+  Camera,
+  Briefcase,
   BarChart2,
   CalendarDays,
   Users,
-  Monitor,
 } from 'lucide-react';
-import { useDashboard } from '@/lib/store';
 
 const navItems = [
   { group: null, label: 'Home', href: '/dashboard/home', icon: House },
   { group: 'RESEARCH', label: 'News', href: '/dashboard/news', icon: Newspaper },
   { group: 'RESEARCH', label: 'Topics', href: '/dashboard/topics', icon: Hash },
   { group: 'RESEARCH', label: 'Formats', href: '/dashboard/formats', icon: Layout },
-  { group: 'CREATE', label: 'YouTube', href: '/dashboard/youtube', icon: Youtube },
-  { group: 'CREATE', label: 'Instagram', href: '/dashboard/instagram', icon: Instagram },
-  { group: 'CREATE', label: 'LinkedIn', href: '/dashboard/linkedin', icon: Linkedin },
+  { group: 'CREATE', label: 'YouTube', href: '/dashboard/youtube', icon: Play },
+  { group: 'CREATE', label: 'Instagram', href: '/dashboard/instagram', icon: Camera },
+  { group: 'CREATE', label: 'LinkedIn', href: '/dashboard/linkedin', icon: Briefcase },
   { group: 'INSIGHTS', label: 'Analytics', href: '/dashboard/analytics', icon: BarChart2 },
   { group: 'INSIGHTS', label: 'Calendar', href: '/dashboard/calendar', icon: CalendarDays },
   { group: 'INSIGHTS', label: 'Competitors', href: '/dashboard/competitors', icon: Users },
@@ -34,7 +32,6 @@ const groups = ['RESEARCH', 'CREATE', 'INSIGHTS'];
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { theme, toggleTheme } = useDashboard();
 
   const ungrouped = navItems.filter((item) => item.group === null);
   const grouped = groups.map((group) => ({
@@ -177,38 +174,6 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* Theme toggle */}
-      <button
-        onClick={toggleTheme}
-        title={theme === 'veblen' ? 'Switch to VS Code theme' : 'Switch to Veblen theme'}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '7px 10px',
-          borderRadius: '6px',
-          border: '1px solid var(--border)',
-          backgroundColor: 'transparent',
-          color: 'var(--text-muted)',
-          fontSize: '12px',
-          cursor: 'pointer',
-          marginBottom: '8px',
-          width: '100%',
-          transition: 'background-color 0.15s, color 0.15s',
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-tint)';
-          (e.currentTarget as HTMLElement).style.color = 'var(--accent)';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-          (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
-        }}
-      >
-        <Monitor size={13} />
-        <span>{theme === 'veblen' ? 'VS Code Theme' : 'Veblen Theme'}</span>
-      </button>
 
       {/* Bottom user avatar */}
       <div

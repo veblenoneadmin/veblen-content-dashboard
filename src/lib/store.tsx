@@ -22,7 +22,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>(samplePosts);
   const [competitors] = useState<Competitor[]>(sampleCompetitors);
   const [newsItems] = useState<NewsItem[]>(sampleNews);
-  const [theme, setTheme] = useState<Theme>('veblen');
+  const [theme, setTheme] = useState<Theme>('vscode');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme === 'vscode' ? 'vscode' : '');
