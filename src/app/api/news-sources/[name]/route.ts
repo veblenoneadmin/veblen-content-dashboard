@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND = process.env.BACKEND_URL ?? 'http://localhost:3001';
 
-export async function DELETE(_req: NextRequest, { params }: { params: { name: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+  const { name } = await params;
   try {
-    const res = await fetch(`${BACKEND}/api/news-sources/${encodeURIComponent(params.name)}`, {
+    const res = await fetch(`${BACKEND}/api/news-sources/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
     const data = await res.json();
