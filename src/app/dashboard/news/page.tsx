@@ -62,37 +62,65 @@ export default function NewsPage() {
             {filtered.length} of {newsItems.length} items
           </p>
         </div>
-        {/* View toggle + Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        {/* Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, flexWrap: 'wrap' }}>
+
+          {/* Sort */}
+          <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+            <span style={{ padding: '6px 8px 6px 10px', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border)' }}>
+              <ArrowUpDown size={11} />Sort
+            </span>
+            {(['newest', 'upvotes'] as SortOption[]).map((opt, i, arr) => (
+              <button key={opt} onClick={() => setSort(opt)}
+                style={{ padding: '6px 10px', background: sort === opt ? 'var(--accent-tint)' : 'transparent', border: 'none', color: sort === opt ? 'var(--accent)' : 'var(--text-muted)', fontSize: '11px', fontWeight: sort === opt ? 600 : 400, cursor: 'pointer', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}
+              >
+                {opt === 'newest' ? 'Newest' : 'Most upvotes'}
+              </button>
+            ))}
+          </div>
+
+          {/* Filter pills */}
+          <FilterPill label="Has upvotes" active={onlyWithUpvotes} onClick={() => setOnlyWithUpvotes(v => !v)} />
+          <FilterPill label="Has link"    active={onlyWithLink}    onClick={() => setOnlyWithLink(v => !v)} />
+
+          {/* Clear */}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => { setSort('newest'); setOnlyWithUpvotes(false); setOnlyWithLink(false); }}
+              style={{ padding: '5px 10px', background: 'rgba(244,71,71,0.1)', border: '1px solid rgba(244,71,71,0.25)', borderRadius: '8px', color: '#f44747', fontSize: '11px', cursor: 'pointer', fontWeight: 500 }}
+            >
+              Clear ({activeFilterCount})
+            </button>
+          )}
+
+          {/* Divider */}
+          <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)' }} />
+
+          {/* View toggle */}
           <div style={{ display: 'flex', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
             {([['list', List, 'List'], ['2col', LayoutGrid, '2 col'], ['3col', Grid3x3, '3 col']] as const).map(([v, Icon, label]) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                title={label}
+              <button key={v} onClick={() => setView(v)} title={label}
                 style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 10px', background: view === v ? 'var(--accent-tint)' : 'transparent', border: 'none', borderRight: v !== '3col' ? '1px solid var(--border)' : 'none', color: view === v ? 'var(--accent)' : 'var(--text-muted)', fontSize: '11px', cursor: 'pointer', fontWeight: view === v ? 600 : 400 }}
               >
                 <Icon size={13} />{label}
               </button>
             ))}
           </div>
-        <div style={{ position: 'relative', width: '260px' }}>
-          <Search size={13} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search news..."
-            style={{ width: '100%', padding: '8px 12px 8px 32px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
-          />
-        </div>
+
+          {/* Search */}
+          <div style={{ position: 'relative', width: '220px' }}>
+            <Search size={13} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
+              style={{ width: '100%', padding: '6px 12px 6px 32px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+
         </div>
       </div>
 
-      {/* ── Filter bar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '8px', flexWrap: 'wrap' }}>
-
-        {/* Source tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap' }}>
+      {/* ── Source tabs ── */}
+      <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '2px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap', flex: 1 }}>
           <TabBtn label="All" active={sourceTab === 'All'} onClick={() => setSourceTab('All')} />
           {newsSources.map(source => (
             <div key={source} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -133,49 +161,6 @@ export default function NewsPage() {
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
             >
               <Plus size={13} />Add source
-            </button>
-          )}
-        </div>
-
-        {/* Right-side filters */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingBottom: '10px', flexShrink: 0 }}>
-          {/* Sort */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-            <span style={{ padding: '5px 8px 5px 10px', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border)' }}>
-              <ArrowUpDown size={11} />Sort
-            </span>
-            {(['newest', 'upvotes'] as SortOption[]).map(opt => (
-              <button
-                key={opt}
-                onClick={() => setSort(opt)}
-                style={{ padding: '5px 10px', background: sort === opt ? 'var(--accent-tint)' : 'transparent', border: 'none', color: sort === opt ? 'var(--accent)' : 'var(--text-muted)', fontSize: '11px', fontWeight: sort === opt ? 600 : 400, cursor: 'pointer', borderRight: opt === 'newest' ? '1px solid var(--border)' : 'none' }}
-              >
-                {opt === 'newest' ? 'Newest' : 'Most upvotes'}
-              </button>
-            ))}
-          </div>
-
-          {/* Toggle: has upvotes */}
-          <FilterPill
-            label="Has upvotes"
-            active={onlyWithUpvotes}
-            onClick={() => setOnlyWithUpvotes(v => !v)}
-          />
-
-          {/* Toggle: has link */}
-          <FilterPill
-            label="Has link"
-            active={onlyWithLink}
-            onClick={() => setOnlyWithLink(v => !v)}
-          />
-
-          {/* Clear filters */}
-          {activeFilterCount > 0 && (
-            <button
-              onClick={() => { setSort('newest'); setOnlyWithUpvotes(false); setOnlyWithLink(false); }}
-              style={{ padding: '5px 10px', background: 'rgba(244,71,71,0.1)', border: '1px solid rgba(244,71,71,0.25)', borderRadius: '8px', color: '#f44747', fontSize: '11px', cursor: 'pointer', fontWeight: 500 }}
-            >
-              Clear ({activeFilterCount})
             </button>
           )}
         </div>
