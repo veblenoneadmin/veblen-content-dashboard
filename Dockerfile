@@ -13,7 +13,7 @@ COPY backend/prisma ./backend/prisma
 RUN npx prisma generate --schema=backend/prisma/schema.prisma
 
 COPY . .
-RUN next build
+RUN npm run build
 
 EXPOSE 3000
 
