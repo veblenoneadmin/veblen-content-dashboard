@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Post, Competitor, NewsItem, NewsSourceConfig } from './types';
-import { samplePosts, sampleCompetitors, sampleNews } from './data';
+import { samplePosts, sampleNews } from './data';
 
 type Theme = 'veblen' | 'vscode';
 
@@ -18,23 +18,36 @@ interface DashboardContextType {
   updatePost: (id: string, updates: Partial<Post>) => void;
   addNewsSourceConfig: (config: NewsSourceConfig) => void;
   removeNewsSource: (name: string) => void;
+  addCompetitor: (c: Omit<Competitor, 'id'>) => Promise<void>;
+  updateCompetitor: (id: string, updates: Partial<Competitor>) => Promise<void>;
+  removeCompetitor: (id: string) => Promise<void>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>(samplePosts);
-  const [competitors] = useState<Competitor[]>(sampleCompetitors);
+  const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [newsItems] = useState<NewsItem[]>(sampleNews);
   const [newsSourceConfigs, setNewsSourceConfigs] = useState<NewsSourceConfig[]>([]);
   const [theme, setTheme] = useState<Theme>('vscode');
 
-  // Load sources from DB on mount
+  // Load news sources from DB on mount
   useEffect(() => {
     fetch('/api/news-sources')
       .then(r => r.json())
       .then((data: NewsSourceConfig[]) => {
         if (Array.isArray(data) && data.length > 0) setNewsSourceConfigs(data);
+      })
+      .catch(() => {/* silently keep empty */});
+  }, []);
+
+  // Load competitors from DB on mount
+  useEffect(() => {
+    fetch('/api/competitors')
+      .then(r => r.json())
+      .then((data: Competitor[]) => {
+        if (Array.isArray(data) && data.length > 0) setCompetitors(data);
       })
       .catch(() => {/* silently keep empty */});
   }, []);
@@ -46,12 +59,10 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => setTheme((t) => (t === 'veblen' ? 'vscode' : 'veblen'));
 
   const addNewsSourceConfig = async (config: NewsSourceConfig) => {
-    // Optimistic update
     setNewsSourceConfigs(prev => {
       if (prev.some(s => s.name === config.name)) return prev;
       return [...prev, config];
     });
-    // Persist to DB
     try {
       await fetch('/api/news-sources', {
         method: 'POST',
@@ -62,12 +73,38 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   const removeNewsSource = async (name: string) => {
-    // Optimistic update
     setNewsSourceConfigs(prev => prev.filter(s => s.name !== name));
-    // Persist to DB
     try {
       await fetch(`/api/news-sources/${encodeURIComponent(name)}`, { method: 'DELETE' });
     } catch { /* optimistic state already applied */ }
+  };
+
+  const addCompetitor = async (c: Omit<Competitor, 'id'>) => {
+    const res = await fetch('/api/competitors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(c),
+    });
+    const created = await res.json();
+    if (res.ok) setCompetitors(prev => [created, ...prev]);
+  };
+
+  const updateCompetitor = async (id: string, updates: Partial<Competitor>) => {
+    setCompetitors(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    try {
+      await fetch(`/api/competitors/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+    } catch { /* optimistic */ }
+  };
+
+  const removeCompetitor = async (id: string) => {
+    setCompetitors(prev => prev.filter(c => c.id !== id));
+    try {
+      await fetch(`/api/competitors/${id}`, { method: 'DELETE' });
+    } catch { /* optimistic */ }
   };
 
   const addPost = (postData: Omit<Post, 'id' | 'createdAt'>) => {
@@ -82,7 +119,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const newsSources = newsSourceConfigs.map(c => c.name);
 
   return (
-    <DashboardContext.Provider value={{ posts, competitors, newsItems, newsSourceConfigs, newsSources, theme, toggleTheme, addPost, updatePost, addNewsSourceConfig, removeNewsSource }}>
+    <DashboardContext.Provider value={{
+      posts, competitors, newsItems, newsSourceConfigs, newsSources, theme,
+      toggleTheme, addPost, updatePost, addNewsSourceConfig, removeNewsSource,
+      addCompetitor, updateCompetitor, removeCompetitor,
+    }}>
       {children}
     </DashboardContext.Provider>
   );
