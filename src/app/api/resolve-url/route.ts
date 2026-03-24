@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Google News article IDs are base64url-encoded and contain the real URL in the payload.
+function decodeGoogleNewsId(url: string): string | null {
+  try {
+    const match = url.match(/\/articles\/([A-Za-z0-9_-]+)/);
+    if (!match) return null;
+    // Convert base64url → base64, then decode
+    const base64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = Buffer.from(base64, 'base64').toString('latin1');
+    // The real URL is embedded as UTF-8 text — find the first http(s):// occurrence
+    const urlMatch = decoded.match(/https?:\/\/[^\s\x00-\x1f"'<>\\]+/);
+    return urlMatch ? urlMatch[0].replace(/[^a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=%]+$/, '') : null;
+  } catch {
+    return null;
+  }
+}
+
 // Extract a non-Google URL from Google News HTML.
 // Google News redirect pages embed the target URL in several places.
 function extractFromGoogleHtml(html: string): string | null {
@@ -50,7 +66,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Google News URLs — fetch the page and extract the real URL from HTML
+  // Try decoding the URL directly from the base64 path first (no fetch needed)
+  const decoded = decodeGoogleNewsId(url);
+  if (decoded) return NextResponse.json({ url: decoded });
+
+  // Fallback: fetch the page and extract the real URL from HTML
   try {
     const res = await fetch(url, {
       redirect: 'follow',
