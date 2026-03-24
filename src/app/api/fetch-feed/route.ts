@@ -10,8 +10,17 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function decodeEntities(s: string) {
+  return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
 function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+  // Decode entities first (handles double-encoded HTML like &lt;a href...&gt;),
+  // then strip tags, then decode any remaining entities.
+  let s = decodeEntities(html);
+  s = s.replace(/<[^>]+>/g, '');
+  s = decodeEntities(s);
+  return s.trim();
 }
 
 function parseCdata(s: string) {
