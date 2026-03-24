@@ -220,44 +220,26 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
                   <Plus size={11} />Add URL
                 </button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {sources.map((src, i) => {
-                  const isGNews = src.includes('news.google.com');
-                  return (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <input
-                          style={{ ...inp, flex: 1, borderColor: isGNews ? '#d4a017' : VS.border }}
-                          value={src}
-                          onChange={e => setSources(s => s.map((x, j) => j === i ? e.target.value : x))}
-                          placeholder="https://..."
-                        />
-                        {isGNews && (
-                          <a href={src} target="_blank" rel="noopener noreferrer"
-                            title="Open in browser — copy the real URL from your address bar"
-                            style={{ flexShrink: 0, padding: '6px 8px', background: 'rgba(212,160,23,0.12)', border: '1px solid rgba(212,160,23,0.3)', borderRadius: '6px', color: '#d4a017', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', textDecoration: 'none', fontFamily: 'monospace', whiteSpace: 'nowrap' }}
-                          >
-                            <ExternalLink size={11} />Open
-                          </a>
-                        )}
-                        {sources.length > 1 && (
-                          <button onClick={() => setSources(s => s.filter((_, j) => j !== i))}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, display: 'flex', flexShrink: 0, padding: '4px' }}
-                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = VS.error}
-                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = VS.text2}
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-                      {isGNews && (
-                        <div style={{ fontSize: '10px', color: '#d4a017', fontFamily: 'monospace', paddingLeft: '2px', opacity: 0.85 }}>
-                          ⚠ Google News link — click Open, wait for the real article to load, then paste that URL here
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {sources.map((src, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      style={{ ...inp, flex: 1 }}
+                      value={src}
+                      onChange={e => setSources(s => s.map((x, j) => j === i ? e.target.value : x))}
+                      placeholder="https://..."
+                    />
+                    {sources.length > 1 && (
+                      <button onClick={() => setSources(s => s.filter((_, j) => j !== i))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, display: 'flex', flexShrink: 0, padding: '4px' }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = VS.error}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = VS.text2}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
