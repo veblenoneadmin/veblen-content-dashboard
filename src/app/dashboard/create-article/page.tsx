@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Plus, X, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
 
 // ── VS Dark palette ───────────────────────────────────────
 const VS = {
@@ -191,6 +191,8 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
 // ── Main Page ─────────────────────────────────────────────
 export default function CreateArticlePage() {
   const [mode, setMode]           = useState<'editor' | 'categorical'>('editor');
+  const [tone, setTone]           = useState('Authoritative');
+  const [mood, setMood]           = useState('News Report');
   const [articles, setArticles]   = useState<ArticleInput[]>([{ topic: '', sources: [''] }]);
   const [categories, setCategories] = useState(['', '', '']);
   const [wordCount, setWordCount] = useState('');
@@ -251,7 +253,7 @@ export default function CreateArticlePage() {
         const arts = articles
           .filter(a => a.sources.some(s => s.trim()))
           .map(a => ({ sources: a.sources.filter(s => s.trim()), topic: a.topic.trim() }));
-        payload = { articles: arts, ...(wordCount ? { wordCount: parseInt(wordCount) } : {}) };
+        payload = { articles: arts, tone, mood, ...(wordCount ? { wordCount: parseInt(wordCount) } : {}) };
       } else {
         const wl = whitelist.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
         const cats = categories.filter(c => c.trim()).map(c => ({
@@ -260,7 +262,7 @@ export default function CreateArticlePage() {
           ...(wl.length ? { whitelist: wl } : {}),
         }));
         payload = {
-          articles: cats, categorical: true,
+          articles: cats, categorical: true, tone, mood,
           ...(catWordCount ? { wordCount: parseInt(catWordCount) } : {}),
           ...(catRegion ? { region: catRegion } : {}),
           ...(wl.length ? { whitelist: wl } : {}),
@@ -327,6 +329,30 @@ export default function CreateArticlePage() {
                   {error}
                 </div>
               )}
+
+              {/* Tone */}
+              <div style={{ marginBottom: '10px' }}>
+                <label style={lbl}>Tone</label>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  {['Authoritative', 'Conversational', 'Analytical', 'Punchy'].map(t => (
+                    <button key={t} onClick={() => setTone(t)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${tone === t ? VS.accent : VS.border}`, background: tone === t ? VS.accentGlow : 'transparent', color: tone === t ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: tone === t ? 600 : 400 }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mood */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={lbl}>Format</label>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  {['News Report', 'Opinion/Analysis', 'Explainer', 'Trend Piece'].map(m => (
+                    <button key={m} onClick={() => setMood(m)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${mood === m ? VS.accent : VS.border}`, background: mood === m ? VS.accentGlow : 'transparent', color: mood === m ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: mood === m ? 600 : 400 }}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Mode tabs */}
               <div style={{ display: 'flex', border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '14px' }}>
