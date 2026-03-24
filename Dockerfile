@@ -17,4 +17,4 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=backend/prisma/schema.prisma && node backend/server.js & node_modules/.bin/next start -p ${PORT:-3000}"]
+CMD ["sh", "-c", "npx prisma db push --schema=backend/prisma/schema.prisma --accept-data-loss && node backend/server.js & node_modules/.bin/next start -p ${PORT:-3000}"]
