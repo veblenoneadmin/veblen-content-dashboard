@@ -22,18 +22,22 @@ interface DashboardContextType {
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
-const defaultSources: NewsSourceConfig[] = [
-  { id: 'reddit',    name: 'Reddit',    type: 'url' },
-  { id: 'rss',       name: 'RSS',       type: 'url' },
-  { id: 'localllama',name: 'LocalLLaMA',type: 'url' },
-];
-
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>(samplePosts);
   const [competitors] = useState<Competitor[]>(sampleCompetitors);
   const [newsItems] = useState<NewsItem[]>(sampleNews);
-  const [newsSourceConfigs, setNewsSourceConfigs] = useState<NewsSourceConfig[]>(defaultSources);
+  const [newsSourceConfigs, setNewsSourceConfigs] = useState<NewsSourceConfig[]>([]);
   const [theme, setTheme] = useState<Theme>('vscode');
+
+  // Load sources from DB on mount
+  useEffect(() => {
+    fetch('/api/news-sources')
+      .then(r => r.json())
+      .then((data: NewsSourceConfig[]) => {
+        if (Array.isArray(data) && data.length > 0) setNewsSourceConfigs(data);
+      })
+      .catch(() => {/* silently keep empty */});
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme === 'vscode' ? 'vscode' : '');
@@ -41,15 +45,29 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = () => setTheme((t) => (t === 'veblen' ? 'vscode' : 'veblen'));
 
-  const addNewsSourceConfig = (config: NewsSourceConfig) => {
+  const addNewsSourceConfig = async (config: NewsSourceConfig) => {
+    // Optimistic update
     setNewsSourceConfigs(prev => {
       if (prev.some(s => s.name === config.name)) return prev;
       return [...prev, config];
     });
+    // Persist to DB
+    try {
+      await fetch('/api/news-sources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+    } catch { /* optimistic state already applied */ }
   };
 
-  const removeNewsSource = (name: string) => {
+  const removeNewsSource = async (name: string) => {
+    // Optimistic update
     setNewsSourceConfigs(prev => prev.filter(s => s.name !== name));
+    // Persist to DB
+    try {
+      await fetch(`/api/news-sources/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    } catch { /* optimistic state already applied */ }
   };
 
   const addPost = (postData: Omit<Post, 'id' | 'createdAt'>) => {

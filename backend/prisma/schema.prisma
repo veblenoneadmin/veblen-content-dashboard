@@ -86,3 +86,15 @@ model NewsItem {
   @@index([source])
   @@index([createdAt])
 }
+
+model NewsSource {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  type       String   @default("url")   // url | api | webhook
+  endpoint   String?  @db.Text
+  apiKey     String?  @db.Text
+  webhookId  String?
+  createdAt  DateTime @default(now())
+
+  @@index([name])
+}

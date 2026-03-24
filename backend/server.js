@@ -3,10 +3,11 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors    = require('cors');
 
-const authRoutes        = require('./routes/auth');
-const postsRoutes       = require('./routes/posts');
-const articlesRoutes    = require('./routes/articles');
-const competitorsRoutes = require('./routes/competitors');
+const authRoutes           = require('./routes/auth');
+const postsRoutes          = require('./routes/posts');
+const articlesRoutes       = require('./routes/articles');
+const competitorsRoutes    = require('./routes/competitors');
+const newsSourcesRoutes    = require('./routes/newsSources');
 
 const app  = express();
 const PORT = process.env.BACKEND_PORT || 3001;
@@ -22,10 +23,11 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 // ── Routes ────────────────────────────────────────────────
-app.use('/api/auth',        authRoutes);
-app.use('/api/posts',       postsRoutes);
-app.use('/api/articles',    articlesRoutes);
-app.use('/api/competitors', competitorsRoutes);
+app.use('/api/auth',         authRoutes);
+app.use('/api/posts',        postsRoutes);
+app.use('/api/articles',     articlesRoutes);
+app.use('/api/competitors',  competitorsRoutes);
+app.use('/api/news-sources', newsSourcesRoutes);
 
 // ── Health ────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'veblen-backend' }));
