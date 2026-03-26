@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, X,
+  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, X,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
   { group: 'INSIGHTS', label: 'Analytics',       href: '/dashboard/analytics',      icon: BarChart2 },
   { group: 'INSIGHTS', label: 'Calendar',        href: '/dashboard/calendar',       icon: CalendarDays },
   { group: 'INSIGHTS', label: 'Competitors',     href: '/dashboard/competitors',    icon: Users },
+  { group: 'INSIGHTS', label: 'Pipeline',        href: '/dashboard/pipeline',       icon: Zap },
 ];
 
 const groups = ['RESEARCH', 'CREATE', 'INSIGHTS'];
