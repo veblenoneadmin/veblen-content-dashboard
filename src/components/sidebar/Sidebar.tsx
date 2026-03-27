@@ -4,26 +4,28 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, X,
+  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X,
 } from 'lucide-react';
 
 const navItems = [
-  { group: null,       label: 'Home',           href: '/dashboard/home',           icon: House },
-  { group: 'RESEARCH', label: 'News',            href: '/dashboard/news',           icon: Newspaper },
-  { group: 'RESEARCH', label: 'Topics',          href: '/dashboard/topics',         icon: Hash },
-  { group: 'RESEARCH', label: 'Formats',         href: '/dashboard/formats',        icon: Layout },
-  { group: 'RESEARCH', label: 'Archive',         href: '/dashboard/archive',        icon: Archive },
-  { group: 'CREATE',   label: 'YouTube',         href: '/dashboard/youtube',        icon: Play },
-  { group: 'CREATE',   label: 'Instagram',       href: '/dashboard/instagram',      icon: Camera },
-  { group: 'CREATE',   label: 'LinkedIn',        href: '/dashboard/linkedin',       icon: Briefcase },
-  { group: 'CREATE',   label: 'Create Article',  href: '/dashboard/create-article', icon: FileText },
-  { group: 'INSIGHTS', label: 'Analytics',       href: '/dashboard/analytics',      icon: BarChart2 },
-  { group: 'INSIGHTS', label: 'Calendar',        href: '/dashboard/calendar',       icon: CalendarDays },
-  { group: 'INSIGHTS', label: 'Competitors',     href: '/dashboard/competitors',    icon: Users },
-  { group: 'INSIGHTS', label: 'Pipeline',        href: '/dashboard/pipeline',       icon: Zap },
+  { group: null,          label: 'Home',           href: '/dashboard/home',           icon: House },
+  { group: 'RESEARCH',    label: 'News',            href: '/dashboard/news',           icon: Newspaper },
+  { group: 'RESEARCH',    label: 'Topics',          href: '/dashboard/topics',         icon: Hash },
+  { group: 'RESEARCH',    label: 'Formats',         href: '/dashboard/formats',        icon: Layout },
+  { group: 'RESEARCH',    label: 'Archive',         href: '/dashboard/archive',        icon: Archive },
+  { group: 'CREATE',      label: 'YouTube',         href: '/dashboard/youtube',        icon: Play },
+  { group: 'CREATE',      label: 'Instagram',       href: '/dashboard/instagram',      icon: Camera },
+  { group: 'CREATE',      label: 'LinkedIn',        href: '/dashboard/linkedin',       icon: Briefcase },
+  { group: 'CREATE',      label: 'Create Article',  href: '/dashboard/create-article', icon: FileText },
+  { group: 'INSIGHTS',    label: 'Analytics',       href: '/dashboard/analytics',      icon: BarChart2 },
+  { group: 'INSIGHTS',    label: 'Calendar',        href: '/dashboard/calendar',       icon: CalendarDays },
+  { group: 'INSIGHTS',    label: 'Competitors',     href: '/dashboard/competitors',    icon: Users },
+  { group: 'AUTOMATION',  label: 'Creator Sources', href: '/dashboard/pipeline',       icon: Zap },
+  { group: 'AUTOMATION',  label: 'Workflows',       href: '/dashboard/workflows',      icon: Workflow },
+  { group: 'AUTOMATION',  label: 'Transcribe',      href: '/dashboard/transcribe',     icon: Mic },
 ];
 
-const groups = ['RESEARCH', 'CREATE', 'INSIGHTS'];
+const groups = ['RESEARCH', 'CREATE', 'INSIGHTS', 'AUTOMATION'];
 
 const VS = {
   bg1: '#252526',
