@@ -1,0 +1,13 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const BACKEND = process.env.BACKEND_URL ?? 'http://localhost:3001';
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  try {
+    await fetch(`${BACKEND}/api/creator-sources/${id}`, { method: 'DELETE' });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}

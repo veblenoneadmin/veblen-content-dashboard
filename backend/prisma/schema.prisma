@@ -101,3 +101,15 @@ model NewsSource {
 
   @@index([name])
 }
+
+model CreatorSource {
+  id        String   @id @default(cuid())
+  name      String
+  platform  String   // TikTok | Instagram | YouTube | Other
+  type      String   @default("url")  // url | api | webhook
+  endpoint  String?  @db.Text
+  apiKey    String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([platform])
+}
