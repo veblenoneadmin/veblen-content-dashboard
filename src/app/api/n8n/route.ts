@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Strip any non-ASCII characters that would cause ByteString errors in fetch headers
-const N8N_URL = (process.env.N8N_URL ?? '').replace(/\/$/, '').replace(/[^\x20-\x7E]/g, '').trim();
+// Extract just the origin (strip any path the user may have accidentally included)
+// and ensure https:// prefix is present
+function parseN8nUrl(raw: string): string {
+  let url = raw.replace(/[^\x20-\x7E]/g, '').trim();
+  if (!url) return '';
+  if (!url.startsWith('http')) url = 'https://' + url;
+  try { return new URL(url).origin; } catch { return url.replace(/\/.*$/, ''); }
+}
+
+const N8N_URL = parseN8nUrl(process.env.N8N_URL ?? '');
 const N8N_KEY = (process.env.N8N_API_KEY ?? '').replace(/[^\x20-\x7E]/g, '').trim();
 const headers = { 'X-N8N-API-KEY': N8N_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' };
 
