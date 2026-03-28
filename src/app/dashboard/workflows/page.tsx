@@ -16,11 +16,11 @@ const WORKFLOWS = [
   { num: 2,  id: 'NILI1T4BF1mOJRPS', name: 'Weekly Re-Scrape',              trigger: 'schedule', canRun: true,  color: '#0EA5E9', description: 'Runs every Monday at 2 AM. Fetches new posts since last scrape, updates DB, then auto-triggers Analytics Engine.', schedule: 'Every Monday 2:00 AM' },
   { num: 3,  id: 'dwxqwzab0DJN6ua8', name: 'Analytics Engine',              trigger: 'auto',     canRun: true,  color: '#8B5CF6', description: 'Analyses top posts from last 3 months. Claude tags hooks, frameworks, CTAs. Generates weekly trends report.', schedule: 'Auto after WF2' },
   { num: 4,  id: '8S2eNGnN0iCB7b12', name: 'Content Generation',            trigger: 'manual',   canRun: true,  color: '#EC4899', description: 'Reads trends report, generates 21 content pieces with Claude (scripts, hooks, captions). Sends to approval queue.', schedule: null },
-  { num: 5,  id: 'urEZZsV9Q0pnCoKJ', name: 'Approval → Schedule',           trigger: 'schedule', canRun: false, color: '#F59E0B', description: 'Checks approval queue every 15 min. Approved items are scheduled via Metricool automatically.', schedule: 'Every 15 minutes' },
+  { num: 5,  id: 'urEZZsV9Q0pnCoKJ', name: 'Approval to Schedule',           trigger: 'schedule', canRun: false, color: '#F59E0B', description: 'Checks approval queue every 15 min. Approved items are scheduled via Metricool automatically.', schedule: 'Every 15 minutes' },
   { num: 6,  id: 'JgvzFoeHnnNHdBkx', name: 'ManyChat DM Automation',        trigger: 'webhook',  canRun: false, color: '#10B981', description: 'Fires on trigger word comment. Sends DM with giveaway link + ElevenLabs voice message.', schedule: 'Webhook (always listening)' },
   { num: 7,  id: 'g0OB6q4LxsnwwX2m', name: 'Weekly Report Notification',    trigger: 'schedule', canRun: true,  color: '#6366F1', description: 'Every Monday 8 AM: pulls metrics, Claude writes 3-sentence summary, posts formatted Slack report.', schedule: 'Every Monday 8:00 AM' },
   { num: 8,  id: 'pkYR4WGWEgKATu6q', name: 'Global Error Handler',          trigger: 'error',    canRun: false, color: '#EF4444', description: 'Silent guardian. Catches errors from all other workflows and sends Slack alert with full debug info.', schedule: 'Always active' },
-  { num: 9,  id: '3IHsFm5SyqCWmM5X', name: 'Script Generation (Deep Voice)', trigger: 'manual',  canRun: true,  color: '#F97316', description: 'Takes top post transcripts + trends report → Claude generates 5 scripts in creator\'s authentic voice.', schedule: null },
+  { num: 9,  id: '3IHsFm5SyqCWmM5X', name: 'Script Generation (Deep Voice)', trigger: 'manual',  canRun: true,  color: '#F97316', description: 'Takes top post transcripts + trends report, then Claude generates 5 scripts in the creator\'s authentic voice.', schedule: null },
 ];
 
 type Status = { id: string; active: boolean | null; ok: boolean };
@@ -177,7 +177,7 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
             style={{ display: 'flex', alignItems: 'center', gap: '5px', background: isActive ? `${VS.green}18` : VS.bg2, border: `1px solid ${isActive ? VS.green + '50' : VS.border}`, borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: isActive ? VS.green : VS.text2, fontSize: '12px', fontWeight: 600, opacity: toggling ? 0.5 : 1 }}
           >
             <Power size={12} />
-            {toggling ? '…' : isActive ? 'On' : 'Off'}
+            {toggling ? '...' : isActive ? 'On' : 'Off'}
           </button>
 
           <a href={`${N8N_URL}/workflow/${wf.id}`} target="_blank" rel="noopener noreferrer"
@@ -189,7 +189,7 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
             <button onClick={handleRun} disabled={running}
               style={{ display: 'flex', alignItems: 'center', gap: '5px', background: wf.color + '22', border: `1px solid ${wf.color}50`, borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: wf.color, fontSize: '12px', fontWeight: 600, opacity: running ? 0.6 : 1 }}>
               {running ? <RefreshCw size={12} className="animate-spin" /> : <Play size={12} />}
-              {running ? 'Running…' : 'Run Now'}
+              {running ? 'Running...' : 'Run Now'}
             </button>
           )}
           {!wf.canRun && (
@@ -206,7 +206,7 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
       {expanded && (
         <div style={{ borderTop: `1px solid ${VS.border}`, padding: '12px 16px' }}>
           <div style={{ fontSize: '10px', color: VS.text2, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Recent Executions</div>
-          {loadingExec && <div style={{ fontSize: '12px', color: VS.text2 }}>Loading…</div>}
+          {loadingExec && <div style={{ fontSize: '12px', color: VS.text2 }}>Loading...</div>}
           {!loadingExec && executions.length === 0 && (
             <div style={{ fontSize: '12px', color: VS.text2 }}>No executions found.</div>
           )}
@@ -265,8 +265,8 @@ export default function WorkflowsPage() {
             n8n Workflows
           </h1>
           <p style={{ color: VS.text2, fontSize: '13px', margin: 0 }}>
-            {loading ? 'Checking status…' : `${activeCount} of ${WORKFLOWS.length} active`}
-            {lastRefresh && <span style={{ marginLeft: '8px' }}>· refreshed {lastRefresh.toLocaleTimeString()}</span>}
+            {loading ? 'Checking status...' : `${activeCount} of ${WORKFLOWS.length} active`}
+            {lastRefresh && <span style={{ marginLeft: '8px' }}>- refreshed {lastRefresh.toLocaleTimeString()}</span>}
           </p>
         </div>
         <button onClick={fetchStatuses} disabled={loading}
@@ -280,7 +280,7 @@ export default function WorkflowsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {[
           { label: 'Total Workflows', value: WORKFLOWS.length, color: VS.accent },
-          { label: 'Active in n8n',   value: loading ? '…' : activeCount, color: VS.green },
+          { label: 'Active in n8n',   value: loading ? '...' : activeCount, color: VS.green },
           { label: 'Auto-triggered',  value: WORKFLOWS.filter(w => !w.canRun).length, color: VS.yellow },
         ].map(s => (
           <div key={s.label} style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '10px', padding: '16px 20px' }}>
