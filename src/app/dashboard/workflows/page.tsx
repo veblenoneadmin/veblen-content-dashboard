@@ -70,6 +70,7 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
 
   const handleToggle = async () => {
     setToggling(true);
+    setRunResult(null);
     const action = isActive ? 'deactivate' : 'activate';
     try {
       const res = await fetch('/api/n8n', {
@@ -78,8 +79,16 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
         body: JSON.stringify({ action, id: wf.id }),
       });
       const data = await res.json();
-      if (data.ok) onToggle(wf.id, !isActive);
-    } catch { /* silently fail */ }
+      if (data.ok) {
+        onToggle(wf.id, !isActive);
+      } else {
+        setRunResult({ ok: false, msg: data.error ?? 'Could not update workflow' });
+        setTimeout(() => setRunResult(null), 8000);
+      }
+    } catch (e) {
+      setRunResult({ ok: false, msg: String(e) });
+      setTimeout(() => setRunResult(null), 8000);
+    }
     setToggling(false);
   };
 

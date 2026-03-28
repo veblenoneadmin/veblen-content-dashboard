@@ -76,7 +76,11 @@ export async function POST(req: NextRequest) {
         signal: AbortSignal.timeout(10000),
       });
       const data = await res.json().catch(() => ({}));
-      return NextResponse.json({ ok: res.ok, active: data?.active ?? null });
+      return NextResponse.json({
+        ok: res.ok,
+        active: data?.active ?? null,
+        error: res.ok ? null : (data?.message ?? 'Failed to update workflow'),
+      });
     }
 
     return NextResponse.json({ error: 'unknown action' }, { status: 400 });
