@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, Zap } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, Power } from 'lucide-react';
 
 const VS = {
   bg0: '#1e1e1e', bg1: '#252526', bg2: '#2d2d2d', bg3: '#333333',
@@ -53,16 +53,35 @@ function ExecStatus({ status }: { status: string }) {
   return <span style={{ fontSize: '11px', fontWeight: 600, color: s }}>{status}</span>;
 }
 
-function WorkflowCard({ wf, status, onRun }: {
+function WorkflowCard({ wf, status, onRun, onToggle }: {
   wf: typeof WORKFLOWS[0];
   status: Status | undefined;
   onRun: (id: string, num: number) => Promise<void>;
+  onToggle: (id: string, active: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loadingExec, setLoadingExec] = useState(false);
   const [running, setRunning] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [runResult, setRunResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const isActive = status?.active === true;
+
+  const handleToggle = async () => {
+    setToggling(true);
+    const action = isActive ? 'deactivate' : 'activate';
+    try {
+      const res = await fetch('/api/n8n', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, id: wf.id }),
+      });
+      const data = await res.json();
+      if (data.ok) onToggle(wf.id, !isActive);
+    } catch { /* silently fail */ }
+    setToggling(false);
+  };
 
   const loadExecutions = async () => {
     if (executions.length) { setExpanded(e => !e); return; }
@@ -141,6 +160,17 @@ function WorkflowCard({ wf, status, onRun }: {
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {/* Activate / Deactivate toggle */}
+          <button
+            onClick={handleToggle}
+            disabled={toggling}
+            title={isActive ? 'Deactivate in n8n' : 'Activate in n8n'}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: isActive ? `${VS.green}18` : VS.bg2, border: `1px solid ${isActive ? VS.green + '50' : VS.border}`, borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: isActive ? VS.green : VS.text2, fontSize: '12px', fontWeight: 600, opacity: toggling ? 0.5 : 1 }}
+          >
+            <Power size={12} />
+            {toggling ? '…' : isActive ? 'On' : 'Off'}
+          </button>
+
           <a href={`${N8N_URL}/workflow/${wf.id}`} target="_blank" rel="noopener noreferrer"
             style={{ background: 'none', border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: VS.text2, display: 'flex', alignItems: 'center', textDecoration: 'none' }}
             title="Open in n8n">
@@ -213,6 +243,10 @@ export default function WorkflowsPage() {
 
   const handleRun = async () => { setTimeout(fetchStatuses, 2000); };
 
+  const handleToggle = (id: string, active: boolean) => {
+    setStatuses(prev => prev.map(s => s.id === id ? { ...s, active } : s));
+  };
+
   return (
     <div style={{ padding: '32px', maxWidth: '900px' }}>
       {/* Header */}
@@ -255,6 +289,7 @@ export default function WorkflowsPage() {
             wf={wf}
             status={statuses.find(s => s.id === wf.id)}
             onRun={handleRun}
+            onToggle={handleToggle}
           />
         ))}
       </div>

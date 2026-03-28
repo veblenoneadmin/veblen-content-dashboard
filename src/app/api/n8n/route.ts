@@ -68,6 +68,17 @@ export async function POST(req: NextRequest) {
       const data = await res.json().catch(() => ({}));
       return NextResponse.json({ ok: res.ok, status: res.status, data });
     }
+
+    if ((action === 'activate' || action === 'deactivate') && id) {
+      const res = await fetch(`${N8N_URL}/api/v1/workflows/${id}/${action}`, {
+        method: 'POST',
+        headers,
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json().catch(() => ({}));
+      return NextResponse.json({ ok: res.ok, active: data?.active ?? null });
+    }
+
     return NextResponse.json({ error: 'unknown action' }, { status: 400 });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
