@@ -54,6 +54,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(r.data?.data ?? []);
     }
 
+    // Debug: show what env vars are loaded (safe — key is masked)
+    if (action === 'debug') {
+      return NextResponse.json({
+        url: N8N_URL || '(not set)',
+        keyLength: N8N_KEY.length,
+        keyPrefix: N8N_KEY ? N8N_KEY.slice(0, 10) + '...' : '(not set)',
+      });
+    }
+
     return NextResponse.json({ error: 'unknown action' }, { status: 400 });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
