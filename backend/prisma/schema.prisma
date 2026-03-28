@@ -114,6 +114,35 @@ model CreatorSource {
   @@index([platform])
 }
 
+model ContentApproval {
+  id               String    @id @default(cuid())
+  contentId        String    @unique  // e.g. VID-1234-ABCD
+  title            String
+  type             String    // video | carousel
+  status           String    @default("Pending Review")  // Pending Review | Approved | Rejected | Scheduled
+  scriptCopy       String?   @db.LongText
+  tiktokCaption    String?   @db.Text
+  instagramCaption String?   @db.Text
+  facebookCaption  String?   @db.Text
+  platform         String?   // selected at approval time
+  caption          String?   @db.Text  // selected at approval time
+  giveawayAttached Boolean   @default(false)
+  giveawayLink     String?   @db.Text
+  triggerWord      String?
+  referenceVideo   String?   @db.Text
+  frameworkUsed    String?
+  scheduledDate    String?
+  approvedBy       String?
+  notes            String?   @db.Text
+  processed        Boolean   @default(false)
+  generatedAt      DateTime  @default(now())
+  approvedAt       DateTime?
+
+  @@index([status])
+  @@index([processed])
+  @@index([generatedAt])
+}
+
 model CreatorPost {
   id               String    @id @default(cuid())
   creatorName      String
