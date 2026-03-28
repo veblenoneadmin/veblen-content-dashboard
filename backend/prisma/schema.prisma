@@ -113,3 +113,29 @@ model CreatorSource {
 
   @@index([platform])
 }
+
+model CreatorPost {
+  id               String    @id @default(cuid())
+  creatorName      String
+  platform         String
+  postUrl          String    @db.Text
+  postDate         DateTime?
+  views            Int       @default(0)
+  likes            Int       @default(0)
+  commentsCount    Int       @default(0)
+  shares           Int       @default(0)
+  saves            Int       @default(0)
+  caption          String?   @db.Text
+  hashtags         String?   @db.Text
+  audio            String?
+  durationSeconds  Int       @default(0)
+  engagementRate   Float     @default(0)
+  videoDownloadUrl String?   @db.Text
+  transcript       String?   @db.LongText
+  scrapedAt        DateTime  @default(now())
+
+  @@index([creatorName])
+  @@index([platform])
+  @@index([engagementRate])
+  @@index([scrapedAt])
+}

@@ -12,15 +12,15 @@ const VS = {
 const N8N_URL = 'https://primary-s0q-production.up.railway.app';
 
 const WORKFLOWS = [
-  { num: 1,  id: '0yJMjB9HTHMx8xCa', name: 'Initial Creator Scrape',       trigger: 'manual',   canRun: true,  color: '#6366F1', description: 'One-time setup. Scrapes all creators on the watchlist, calculates engagement rates, loads everything into the database.', schedule: null },
-  { num: 2,  id: 'NILI1T4BF1mOJRPS', name: 'Weekly Re-Scrape',              trigger: 'schedule', canRun: true,  color: '#0EA5E9', description: 'Runs every Monday at 2 AM. Fetches new posts since last scrape, updates DB, then auto-triggers Analytics Engine.', schedule: 'Every Monday 2:00 AM' },
-  { num: 3,  id: 'dwxqwzab0DJN6ua8', name: 'Analytics Engine',              trigger: 'auto',     canRun: true,  color: '#8B5CF6', description: 'Analyses top posts from last 3 months. Claude tags hooks, frameworks, CTAs. Generates weekly trends report.', schedule: 'Auto after WF2' },
-  { num: 4,  id: '8S2eNGnN0iCB7b12', name: 'Content Generation',            trigger: 'manual',   canRun: true,  color: '#EC4899', description: 'Reads trends report, generates 21 content pieces with Claude (scripts, hooks, captions). Sends to approval queue.', schedule: null },
-  { num: 5,  id: 'urEZZsV9Q0pnCoKJ', name: 'Approval to Schedule',           trigger: 'schedule', canRun: false, color: '#F59E0B', description: 'Checks approval queue every 15 min. Approved items are scheduled via Metricool automatically.', schedule: 'Every 15 minutes' },
-  { num: 6,  id: 'JgvzFoeHnnNHdBkx', name: 'ManyChat DM Automation',        trigger: 'webhook',  canRun: false, color: '#10B981', description: 'Fires on trigger word comment. Sends DM with giveaway link + ElevenLabs voice message.', schedule: 'Webhook (always listening)' },
-  { num: 7,  id: 'g0OB6q4LxsnwwX2m', name: 'Weekly Report Notification',    trigger: 'schedule', canRun: true,  color: '#6366F1', description: 'Every Monday 8 AM: pulls metrics, Claude writes 3-sentence summary, posts formatted Slack report.', schedule: 'Every Monday 8:00 AM' },
-  { num: 8,  id: 'pkYR4WGWEgKATu6q', name: 'Global Error Handler',          trigger: 'error',    canRun: false, color: '#EF4444', description: 'Silent guardian. Catches errors from all other workflows and sends Slack alert with full debug info.', schedule: 'Always active' },
-  { num: 9,  id: '3IHsFm5SyqCWmM5X', name: 'Script Generation (Deep Voice)', trigger: 'manual',  canRun: true,  color: '#F97316', description: 'Takes top post transcripts + trends report, then Claude generates 5 scripts in the creator\'s authentic voice.', schedule: null },
+  { num: 1,  id: '0yJMjB9HTHMx8xCa', name: 'Initial Creator Scrape',        trigger: 'manual',   canRun: true,  color: '#6366F1', webhookPath: 'wf1-creator-scrape',    description: 'One-time setup. Scrapes all creators on the watchlist, calculates engagement rates, loads everything into the database.', schedule: null },
+  { num: 2,  id: 'NILI1T4BF1mOJRPS', name: 'Weekly Re-Scrape',              trigger: 'schedule', canRun: true,  color: '#0EA5E9', webhookPath: null,                     description: 'Runs every Monday at 2 AM. Fetches new posts since last scrape, updates DB, then auto-triggers Analytics Engine.', schedule: 'Every Monday 2:00 AM' },
+  { num: 3,  id: 'dwxqwzab0DJN6ua8', name: 'Analytics Engine',              trigger: 'auto',     canRun: true,  color: '#8B5CF6', webhookPath: 'wf3-analytics-engine',   description: 'Analyses top posts from last 3 months. Claude tags hooks, frameworks, CTAs. Generates weekly trends report.', schedule: 'Auto after WF2' },
+  { num: 4,  id: '8S2eNGnN0iCB7b12', name: 'Content Generation',            trigger: 'manual',   canRun: true,  color: '#EC4899', webhookPath: 'wf4-content-generation', description: 'Reads trends report, generates 21 content pieces with Claude (scripts, hooks, captions). Sends to approval queue.', schedule: null },
+  { num: 5,  id: 'urEZZsV9Q0pnCoKJ', name: 'Approval to Schedule',          trigger: 'schedule', canRun: false, color: '#F59E0B', webhookPath: null,                     description: 'Checks approval queue every 15 min. Approved items are scheduled via Metricool automatically.', schedule: 'Every 15 minutes' },
+  { num: 6,  id: 'JgvzFoeHnnNHdBkx', name: 'ManyChat DM Automation',        trigger: 'webhook',  canRun: false, color: '#10B981', webhookPath: null,                     description: 'Fires on trigger word comment. Sends DM with giveaway link + ElevenLabs voice message.', schedule: 'Webhook (always listening)' },
+  { num: 7,  id: 'g0OB6q4LxsnwwX2m', name: 'Weekly Report Notification',    trigger: 'schedule', canRun: true,  color: '#6366F1', webhookPath: null,                     description: 'Every Monday 8 AM: pulls metrics, Claude writes 3-sentence summary, posts formatted Discord report.', schedule: 'Every Monday 8:00 AM' },
+  { num: 8,  id: 'pkYR4WGWEgKATu6q', name: 'Global Error Handler',          trigger: 'error',    canRun: false, color: '#EF4444', webhookPath: null,                     description: 'Silent guardian. Catches errors from all other workflows and sends Discord alert with full debug info.', schedule: 'Always active' },
+  { num: 9,  id: '3IHsFm5SyqCWmM5X', name: 'Script Generation (Deep Voice)', trigger: 'manual',  canRun: true,  color: '#F97316', webhookPath: 'wf9-script-generation',  description: 'Takes top post transcripts + trends report, then Claude generates 5 scripts in the creator\'s authentic voice.', schedule: null },
 ];
 
 type Status = { id: string; active: boolean | null; ok: boolean };
@@ -104,26 +104,25 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
     setLoadingExec(false);
   };
 
-  const handleRun = async () => {
+  const handleRun = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setRunning(true);
     setRunResult(null);
     try {
       const res = await fetch('/api/n8n', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'trigger', id: wf.id }),
+        body: JSON.stringify({ action: 'trigger', id: wf.id, ...(wf.webhookPath ? { webhookPath: wf.webhookPath } : {}) }),
       });
       const data = await res.json();
-      if (data.ok || data.data?.executionId) {
-        setRunResult({ ok: true, msg: 'Workflow triggered successfully' });
+      if (data.ok) {
+        setRunResult({ ok: true, msg: 'Workflow triggered' });
       } else {
-        // Fallback: open in n8n
-        window.open(`${N8N_URL}/workflow/${wf.id}`, '_blank');
-        setRunResult({ ok: true, msg: 'Opened in n8n' });
+        setRunResult({ ok: false, msg: data.error ?? data.data?.message ?? 'Trigger failed' });
       }
-    } catch {
-      window.open(`${N8N_URL}/workflow/${wf.id}`, '_blank');
-      setRunResult({ ok: true, msg: 'Opened in n8n' });
+    } catch (err) {
+      setRunResult({ ok: false, msg: String(err) });
     }
     setRunning(false);
     setTimeout(() => setRunResult(null), 4000);
@@ -186,7 +185,7 @@ function WorkflowCard({ wf, status, onRun, onToggle }: {
             <ExternalLink size={13} />
           </a>
           {wf.canRun && (
-            <button onClick={handleRun} disabled={running}
+            <button onClick={(e) => handleRun(e)} disabled={running}
               style={{ display: 'flex', alignItems: 'center', gap: '5px', background: wf.color + '22', border: `1px solid ${wf.color}50`, borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', color: wf.color, fontSize: '12px', fontWeight: 600, opacity: running ? 0.6 : 1 }}>
               {running ? <RefreshCw size={12} className="animate-spin" /> : <Play size={12} />}
               {running ? 'Running...' : 'Run Now'}

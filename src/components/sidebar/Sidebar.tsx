@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, Layers,
+  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, Layers, TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,9 +21,10 @@ const navItems = [
   { group: 'INSIGHTS',    label: 'Analytics',       href: '/dashboard/analytics',      icon: BarChart2 },
   { group: 'INSIGHTS',    label: 'Calendar',        href: '/dashboard/calendar',       icon: CalendarDays },
   { group: 'INSIGHTS',    label: 'Competitors',     href: '/dashboard/competitors',    icon: Users },
-  { group: 'AUTOMATION',  label: 'Creator Sources', href: '/dashboard/pipeline',       icon: Zap },
-  { group: 'AUTOMATION',  label: 'Workflows',       href: '/dashboard/workflows',      icon: Workflow },
-  { group: 'AUTOMATION',  label: 'Transcribe',      href: '/dashboard/transcribe',     icon: Mic },
+  { group: 'AUTOMATION',  label: 'Creator Sources',   href: '/dashboard/pipeline',            icon: Zap },
+  { group: 'AUTOMATION',  label: 'Creator Analytics', href: '/dashboard/creator-analytics',   icon: TrendingUp },
+  { group: 'AUTOMATION',  label: 'Workflows',         href: '/dashboard/workflows',            icon: Workflow },
+  { group: 'AUTOMATION',  label: 'Transcribe',        href: '/dashboard/transcribe',           icon: Mic },
 ];
 
 const groups = ['APPS', 'RESEARCH', 'CREATE', 'INSIGHTS', 'AUTOMATION'];

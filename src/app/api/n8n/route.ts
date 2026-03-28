@@ -75,8 +75,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'N8N_URL or N8N_API_KEY not set' }, { status: 500 });
   }
   try {
-    const { action, id } = await req.json();
+    const { action, id, webhookPath } = await req.json();
     if (action === 'trigger' && id) {
+      // Some n8n versions don't support /run — use webhook URL if provided
+      if (webhookPath) {
+        const res = await fetch(`${N8N_URL}/webhook/${webhookPath}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: AbortSignal.timeout(15000),
+        });
+        const data = await res.json().catch(() => ({}));
+        return NextResponse.json({ ok: res.ok, status: res.status, data });
+      }
       const res = await fetch(`${N8N_URL}/api/v1/workflows/${id}/run`, {
         method: 'POST',
         headers,
