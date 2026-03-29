@@ -114,6 +114,37 @@ model CreatorSource {
   @@index([platform])
 }
 
+model FrameworkTag {
+  id                 String   @id @default(cuid())
+  postId             String   // post_url or external ID
+  hookType           String
+  bodyStructure      String
+  ctaPattern         String
+  naturalDescription String?  @db.Text
+  analysisDate       String
+  createdAt          DateTime @default(now())
+
+  @@index([postId(length: 191)])
+  @@index([analysisDate])
+}
+
+model WeeklyReport {
+  id                        String   @id @default(cuid())
+  weekStart                 String
+  topHooksJson              String?  @db.LongText
+  topFrameworksJson         String?  @db.LongText
+  trendInsights             String?  @db.LongText
+  strategyRecommendations   String?  @db.LongText
+  deltaFromLastWeek         String?  @db.LongText
+  optimalPostingSchedule    String?  @db.LongText
+  contentSplitRecommendation String? @db.LongText
+  actionItems               String?  @db.LongText
+  rawReport                 String?  @db.LongText
+  createdAt                 DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model ContentApproval {
   id               String    @id @default(cuid())
   contentId        String    @unique  // e.g. VID-1234-ABCD

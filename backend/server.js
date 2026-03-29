@@ -11,6 +11,8 @@ const newsSourcesRoutes    = require('./routes/newsSources');
 const creatorSourcesRoutes = require('./routes/creatorSources');
 const creatorPostsRoutes      = require('./routes/creatorPosts');
 const contentApprovalsRoutes  = require('./routes/contentApprovals');
+const frameworkTagsRoutes     = require('./routes/frameworkTags');
+const weeklyReportsRoutes     = require('./routes/weeklyReports');
 
 const app  = express();
 const PORT = process.env.BACKEND_PORT || 3001;
@@ -34,6 +36,8 @@ app.use('/api/news-sources',    newsSourcesRoutes);
 app.use('/api/creator-sources', creatorSourcesRoutes);
 app.use('/api/creator-posts',      creatorPostsRoutes);
 app.use('/api/content-approvals',  contentApprovalsRoutes);
+app.use('/api/framework-tags',     frameworkTagsRoutes);
+app.use('/api/weekly-reports',     weeklyReportsRoutes);
 
 // ── Health ────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'veblen-backend' }));
