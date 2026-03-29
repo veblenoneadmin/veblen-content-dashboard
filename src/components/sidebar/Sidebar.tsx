@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, Layers, TrendingUp, ClipboardCheck,
+  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, Layers, TrendingUp, ClipboardCheck, Tag, ScrollText,
 } from 'lucide-react';
 
 const navItems = [
@@ -24,6 +24,8 @@ const navItems = [
   { group: 'AUTOMATION',  label: 'Creator Sources',   href: '/dashboard/pipeline',            icon: Zap },
   { group: 'AUTOMATION',  label: 'Creator Analytics', href: '/dashboard/creator-analytics',   icon: TrendingUp },
   { group: 'AUTOMATION',  label: 'Approval Queue',    href: '/dashboard/approval-queue',       icon: ClipboardCheck },
+  { group: 'AUTOMATION',  label: 'Framework Tags',    href: '/dashboard/framework-tags',       icon: Tag },
+  { group: 'AUTOMATION',  label: 'Weekly Reports',    href: '/dashboard/weekly-reports',       icon: ScrollText },
   { group: 'AUTOMATION',  label: 'Workflows',         href: '/dashboard/workflows',            icon: Workflow },
   { group: 'AUTOMATION',  label: 'Transcribe',        href: '/dashboard/transcribe',           icon: Mic },
 ];
