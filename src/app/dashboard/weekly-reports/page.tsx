@@ -66,7 +66,7 @@ function HookList({ data }: { data: unknown }) {
             <div style={{ fontSize: 13, fontWeight: 600, color: VS.text0, textTransform: 'capitalize' }}>
               {String(hook.hook_type || hook.hookType || hook.type || 'Unknown')}
             </div>
-            {(hook.avg_engagement_rate || hook.avgEngagementRate) && (
+            {!!(hook.avg_engagement_rate || hook.avgEngagementRate) && (
               <div style={{ fontSize: 11, color: VS.text2 }}>
                 avg engagement: {String(hook.avg_engagement_rate || hook.avgEngagementRate)}%
                 {hook.post_count ? ` · ${hook.post_count} posts` : ''}
