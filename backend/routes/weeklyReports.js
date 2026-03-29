@@ -4,13 +4,29 @@ const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// GET /api/weekly-reports?limit=1
+// GET /api/weekly-reports?limit=1&format=snake
 router.get('/', async (req, res) => {
-  const { limit } = req.query;
+  const { limit, format } = req.query;
   const reports = await prisma.weeklyReport.findMany({
     orderBy: { createdAt: 'desc' },
     take: limit ? parseInt(limit) : 10,
   });
+  if (format === 'snake') {
+    return res.json(reports.map(r => ({
+      id:                           r.id,
+      week_start:                   r.weekStart,
+      top_hooks_json:               r.topHooksJson,
+      top_frameworks_json:          r.topFrameworksJson,
+      trend_insights:               r.trendInsights,
+      strategy_recommendations:     r.strategyRecommendations,
+      delta_from_last_week:         r.deltaFromLastWeek,
+      optimal_posting_schedule:     r.optimalPostingSchedule,
+      content_split_recommendation: r.contentSplitRecommendation,
+      action_items:                 r.actionItems,
+      raw_report:                   r.rawReport,
+      created_at:                   r.createdAt,
+    })));
+  }
   res.json(reports);
 });
 

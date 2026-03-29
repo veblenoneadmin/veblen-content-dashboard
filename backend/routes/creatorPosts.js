@@ -2,9 +2,33 @@ const express = require('express');
 const router  = express.Router();
 const prisma  = require('../lib/prisma');
 
-// GET /api/creator-posts?creator=&platform=&limit=50
+// Converts camelCase Prisma object to snake_case for n8n compatibility
+function toSnake(post) {
+  return {
+    id:                post.id,
+    creator_name:      post.creatorName,
+    platform:          post.platform,
+    post_url:          post.postUrl,
+    post_date:         post.postDate,
+    views:             post.views,
+    likes:             post.likes,
+    comments_count:    post.commentsCount,
+    shares:            post.shares,
+    saves:             post.saves,
+    caption:           post.caption,
+    hashtags:          post.hashtags,
+    audio:             post.audio,
+    duration_seconds:  post.durationSeconds,
+    engagement_rate:   post.engagementRate,
+    video_download_url: post.videoDownloadUrl,
+    transcript:        post.transcript,
+    scraped_at:        post.scrapedAt,
+  };
+}
+
+// GET /api/creator-posts?creator=&platform=&limit=50&format=snake
 router.get('/', async (req, res) => {
-  const { creator, platform, limit = '100' } = req.query;
+  const { creator, platform, limit = '100', format } = req.query;
   const where = {};
   if (creator)  where.creatorName = creator;
   if (platform) where.platform    = platform;
@@ -14,7 +38,7 @@ router.get('/', async (req, res) => {
       orderBy: { engagementRate: 'desc' },
       take: parseInt(limit, 10),
     });
-    res.json(posts);
+    res.json(format === 'snake' ? posts.map(toSnake) : posts);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
