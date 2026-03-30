@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2, CheckCircle2, Paperclip, X } from 'lucide-react';
 import BnaStyleGuide from '@/components/shared/BnaStyleGuide';
 
@@ -270,6 +270,25 @@ export default function CreateArticlePage() {
     setUploadedFiles(f => { const n = { ...f }; delete n[key]; return n; });
   };
 
+  // Load most recent saved articles on mount
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(r => r.json())
+      .then(data => {
+        const saved = Array.isArray(data) ? data : data.articles;
+        if (!Array.isArray(saved) || !saved.length) return;
+        const recent = saved.slice(0, 10).map((a: { id: number; topic?: string; article_text?: string; articleText?: string }, i: number) => ({
+          index: i,
+          topic: a.topic || '',
+          articleText: a.article_text || a.articleText || '',
+        }));
+        setResults(recent);
+        setCurrentIdx(0);
+        setSaved(true);
+      })
+      .catch(() => {});
+  }, []);
+
   // ── Loading ticker ─────────────────────────────────────
   const startLoading = useCallback(() => {
     setLoading(true); setLoadingMsg(0);
@@ -343,6 +362,15 @@ export default function CreateArticlePage() {
       setCurrentIdx(data.articles[0].index);
       setImgSrcs({});
       setSaved(false);
+      // Auto-save all generated articles
+      for (const article of data.articles) {
+        await fetch('/api/articles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: article.topic || '', articleText: article.articleText, tone, mood }),
+        }).catch(() => {});
+      }
+      setSaved(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Request failed');
     } finally {
