@@ -8,6 +8,7 @@ import {
   List, LayoutGrid, Grid3x3, FileText, Loader2, Copy, ChevronRight,
   Globe, Webhook, KeyRound, CheckCircle2, AlertCircle,
 } from 'lucide-react';
+import BnaStyleGuide from '@/components/shared/BnaStyleGuide';
 
 type SortOption = 'newest' | 'upvotes';
 type ViewMode   = 'list' | '2col' | '3col';
@@ -47,6 +48,7 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
   const [currentIdx, setCurrentIdx] = useState(0);
   const [error, setError]     = useState('');
   const [saved, setSaved]     = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [resolving, setResolving] = useState(false);
@@ -174,12 +176,20 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
             <span style={{ fontSize: '14px', fontWeight: 600, color: VS.text0 }}>Create Article</span>
             <span style={{ fontSize: '11px', color: VS.text2, fontFamily: 'monospace' }}>{sources.filter(s => s.trim()).length} source{sources.filter(s => s.trim()).length !== 1 ? 's' : ''} loaded</span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, display: 'flex' }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = VS.text0}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = VS.text2}
-          >
-            <X size={18} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setShowGuide(v => !v)}
+              style={{ background: showGuide ? `${VS.accent}18` : 'none', border: `1px solid ${showGuide ? VS.accent : VS.border}`, borderRadius: '6px', cursor: 'pointer', color: showGuide ? VS.accent : VS.text2, fontSize: '11px', fontFamily: 'monospace', padding: '4px 10px', fontWeight: showGuide ? 600 : 400 }}
+            >
+              Style Guide
+            </button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, display: 'flex' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = VS.text0}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = VS.text2}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -280,8 +290,10 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
             </button>
           </div>
 
-          {/* Right — result */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '18px', background: VS.bg0 }}>
+          {/* Right — result / guide */}
+          <div style={{ flex: 1, overflowY: 'auto', background: VS.bg0 }}>
+            {showGuide ? <BnaStyleGuide accent={VS.accent} /> : (
+            <div style={{ padding: '18px', height: '100%', boxSizing: 'border-box' }}>
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
                 <Loader2 size={32} style={{ color: VS.accent, animation: 'spin 1s linear infinite' }} />
@@ -322,6 +334,8 @@ function CreateArticleModal({ initialUrls, onClose }: { initialUrls: string[]; o
                 <FileText size={32} style={{ opacity: 0.2 }} />
                 <p style={{ fontSize: '13px', margin: 0 }}>Your generated article will appear here</p>
               </div>
+            )}
+            </div>
             )}
           </div>
         </div>
