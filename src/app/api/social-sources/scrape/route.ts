@@ -1,0 +1,153 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const APIFY = 'https://api.apify.com/v2/acts';
+const TOKEN = process.env.APIFY_API_TOKEN;
+const BACKEND = process.env.BACKEND_URL ?? 'http://localhost:3001';
+
+async function scrapeAndSave(platform: string, handle: string, url: string, sourceId: string) {
+  const creatorName = handle.replace(/^@/, '');
+
+  if (platform === 'TikTok') {
+    const res = await fetch(
+      `${APIFY}/clockworks~free-tiktok-scraper/run-sync-get-dataset-items?token=${TOKEN}&timeout=120`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profiles: [url], resultsPerPage: 30, shouldDownloadVideos: false }),
+      }
+    );
+    if (!res.ok) return;
+    const posts = await res.json();
+    for (const d of posts) {
+      const views    = Number(d.playCount ?? 0);
+      const likes    = Number(d.diggCount ?? 0);
+      const comments = Number(d.commentCount ?? 0);
+      const shares   = Number(d.shareCount ?? 0);
+      const saves    = Number(d.collectCount ?? 0);
+      const engBase  = views > 0 ? views : 1;
+      await fetch(`${BACKEND}/api/creator-posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creator_name: creatorName,
+          platform: 'tiktok',
+          post_url: d.webVideoUrl || d.url || '',
+          post_date: d.createTimeISO || null,
+          views, likes, comments_count: comments, shares, saves,
+          caption: d.text || d.desc || '',
+          hashtags: `{${(d.hashtags || []).map((h: { name?: string } | string) => typeof h === 'string' ? h : h.name || '').filter(Boolean).join(',')}}`,
+          audio: d.musicMeta?.musicName || '',
+          duration_seconds: Math.round(d.videoMeta?.duration || 0),
+          engagement_rate: Math.round(((likes + comments + shares + saves) / engBase) * 1000000) / 10000,
+          video_download_url: d.videoUrl || '',
+          transcript: '',
+        }),
+      });
+    }
+  }
+
+  if (platform === 'Instagram') {
+    const res = await fetch(
+      `${APIFY}/apify~instagram-scraper/run-sync-get-dataset-items?token=${TOKEN}&timeout=120`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ directUrls: [url], resultsLimit: 30, resultsType: 'posts', searchType: 'user' }),
+      }
+    );
+    if (!res.ok) return;
+    const posts = await res.json();
+    for (const d of posts) {
+      const likes    = Number(d.likesCount ?? 0);
+      const comments = Number(d.commentsCount ?? 0);
+      const views    = Number(d.videoViewCount ?? 0);
+      const engBase  = views > 0 ? views : likes > 0 ? likes * 10 : 1;
+      await fetch(`${BACKEND}/api/creator-posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creator_name: creatorName,
+          platform: 'instagram',
+          post_url: d.url || (d.shortCode ? `https://www.instagram.com/p/${d.shortCode}/` : ''),
+          post_date: d.timestamp || null,
+          views, likes, comments_count: comments, shares: 0, saves: 0,
+          caption: d.caption || '',
+          hashtags: '{}',
+          audio: '',
+          duration_seconds: Math.round(d.videoDuration || 0),
+          engagement_rate: Math.round(((likes + comments) / engBase) * 1000000) / 10000,
+          video_download_url: d.videoUrl || '',
+          transcript: '',
+        }),
+      });
+    }
+  }
+
+  if (platform === 'YouTube') {
+    const ytKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+    if (!ytKey) return;
+    const channelHandle = handle.replace(/^@/, '');
+    const chRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${channelHandle}&key=${ytKey}`
+    );
+    if (!chRes.ok) return;
+    const chData = await chRes.json();
+    const uploadsId = chData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    if (!uploadsId) return;
+
+    const vidRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsId}&maxResults=30&key=${ytKey}`
+    );
+    if (!vidRes.ok) return;
+    const vidData = await vidRes.json();
+    const videoIds = (vidData.items || []).map((v: { snippet: { resourceId: { videoId: string } } }) => v.snippet.resourceId.videoId).join(',');
+    if (!videoIds) return;
+
+    const statsRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet,contentDetails&id=${videoIds}&key=${ytKey}`
+    );
+    if (!statsRes.ok) return;
+    const statsData = await statsRes.json();
+
+    for (const v of statsData.items || []) {
+      const views    = Number(v.statistics?.viewCount ?? 0);
+      const likes    = Number(v.statistics?.likeCount ?? 0);
+      const comments = Number(v.statistics?.commentCount ?? 0);
+      await fetch(`${BACKEND}/api/creator-posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creator_name: creatorName,
+          platform: 'youtube',
+          post_url: `https://www.youtube.com/watch?v=${v.id}`,
+          post_date: v.snippet?.publishedAt || null,
+          views, likes, comments_count: comments, shares: 0, saves: 0,
+          caption: v.snippet?.title || '',
+          hashtags: '{}',
+          audio: '',
+          duration_seconds: 0,
+          engagement_rate: views > 0 ? Math.round(((likes + comments) / views) * 1000000) / 10000 : 0,
+          video_download_url: '',
+          transcript: '',
+        }),
+      });
+    }
+  }
+
+  // Mark source as connected
+  await fetch(`${BACKEND}/api/social-sources/${sourceId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'connected', lastSync: new Date().toISOString() }),
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const { sourceId, platform, handle, url } = await req.json();
+  if (!sourceId || !platform || !handle || !url) {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  }
+  // Run in background — don't await
+  scrapeAndSave(platform, handle, url, sourceId).catch(console.error);
+  return NextResponse.json({ ok: true, message: 'Scraping started' });
+}

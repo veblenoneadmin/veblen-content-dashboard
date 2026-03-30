@@ -130,7 +130,16 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
       body: JSON.stringify(body),
     });
     if (!res.ok) { setError('Failed to save — please try again.'); setLoading(false); return; }
-    onSave(await res.json());
+    const saved = await res.json();
+    onSave(saved);
+    // Trigger scrape in background for TikTok, Instagram, YouTube
+    if (['TikTok', 'Instagram', 'YouTube'].includes(platform)) {
+      fetch('/api/social-sources/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceId: saved.id, platform, handle, url: url.trim() }),
+      }).catch(() => {});
+    }
     onClose();
   };
 
