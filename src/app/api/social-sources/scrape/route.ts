@@ -79,37 +79,8 @@ async function scrapeAndSave(platform: string, handle: string, url: string, sour
     }
   }
 
-  if (platform === 'LinkedIn') {
-    if (!token) throw new Error('APIFY_API_TOKEN not set');
-    const res = await fetch(
-      `${APIFY}/curious_coder~linkedin-company-post-scraper/run-sync-get-dataset-items?token=${token}&timeout=120`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyUrls: [url], maxPosts: 30 }),
-      }
-    );
-    if (!res.ok) throw new Error(`Apify LinkedIn ${res.status}: ${await res.text()}`);
-    const posts = await res.json();
-    for (const d of posts) {
-      const likes    = Number(d.numLikes ?? d.likes ?? 0);
-      const comments = Number(d.numComments ?? d.comments ?? 0);
-      const shares   = Number(d.numShares ?? d.shares ?? 0);
-      await fetch(`${BACKEND}/api/creator-posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          creator_name: creatorName.replace(/-/g, ' '), platform: 'linkedin',
-          post_url: d.url || d.postUrl || `${url}/posts`,
-          post_date: d.postedAt || d.date || null,
-          views: 0, likes, comments_count: comments, shares, saves: 0,
-          caption: d.text || d.content || '',
-          hashtags: '{}', audio: '', duration_seconds: 0,
-          engagement_rate: likes + comments + shares > 0 ? Math.round(((likes + comments + shares) / Math.max(likes * 10, 1)) * 1000000) / 10000 : 0,
-          video_download_url: '', transcript: '',
-        }),
-      });
-    }
+  if (platform === 'LinkedIn' || platform === 'Twitter/X' || platform === 'Other') {
+    // No scraper available — just mark as connected so the URL is tracked
   }
 
   if (platform === 'YouTube') {
