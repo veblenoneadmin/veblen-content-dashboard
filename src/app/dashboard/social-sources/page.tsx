@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Plus, X, Play, Camera, Briefcase, AtSign, Globe,
   CheckCircle2, AlertCircle, Clock, Trash2, ExternalLink,
@@ -186,20 +186,47 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
   );
 }
 
-export default function SocialSourcesPage() {
+function useSources() {
   const [sources, setSources] = useState<SocialSource[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [filter, setFilter] = useState<Platform | 'All'>('All');
-  const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const fetchSources = () =>
     fetch(API)
       .then(r => r.json())
       .then(data => setSources(Array.isArray(data) ? data : []))
-      .catch(() => setSources([]))
-      .finally(() => setLoading(false));
+      .catch(() => {});
+
+  useEffect(() => {
+    fetchSources().finally(() => setLoading(false));
   }, []);
+
+  const startPolling = () => {
+    if (pollingRef.current) return;
+    pollingRef.current = setInterval(() => {
+      fetchSources().then(() => {
+        // stop polling once no sources are pending
+        setSources(prev => {
+          if (prev.every(s => s.status !== 'pending')) {
+            clearInterval(pollingRef.current!);
+            pollingRef.current = null;
+          }
+          return prev;
+        });
+      });
+    }, 4000);
+  };
+
+  useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
+
+  return { sources, setSources, loading, startPolling, fetchSources };
+}
+
+export default function SocialSourcesPage() {
+  const { sources, setSources, loading, startPolling } = useSources();
+  const [showAdd, setShowAdd] = useState(false);
+  const [filter, setFilter] = useState<Platform | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All');
 
   const filtered = sources.filter(s => {
     if (filter !== 'All' && s.platform !== filter) return false;
@@ -216,6 +243,7 @@ export default function SocialSourcesPage() {
     setSources(prev => [...prev, s]);
     setFilter('All');
     setStatusFilter('All');
+    startPolling();
   };
 
   const connected      = sources.filter(s => s.status === 'connected').length;
