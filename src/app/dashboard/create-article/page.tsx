@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2, CheckCircle2 } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2, CheckCircle2, Paperclip, X } from 'lucide-react';
 import BnaStyleGuide from '@/components/shared/BnaStyleGuide';
 
 // ── VS Dark palette ───────────────────────────────────────
@@ -47,6 +47,7 @@ const LOADING_MSGS = [
 
 type ArticleInput  = { topic: string; sources: string[] };
 type ArticleResult = { index: number; topic: string; articleText: string };
+type UploadedFile  = { name: string; text: string };
 
 // ── BNA Preview ───────────────────────────────────────────
 function BnaPreview({ article, imgSrc, onImgChange }: {
@@ -213,7 +214,32 @@ export default function CreateArticlePage() {
   const [saved, setSaved]         = useState(false);
   const [formCollapsed, setFormCollapsed] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedFile>>({});
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fileKey = (artIdx: number, srcIdx: number) => `${artIdx}_${srcIdx}`;
+
+  const handleFileUpload = async (artIdx: number, srcIdx: number, file: File) => {
+    const key = fileKey(artIdx, srcIdx);
+    setUploading(u => ({ ...u, [key]: true }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/parse-file', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      setUploadedFiles(f => ({ ...f, [key]: { name: file.name, text: data.text } }));
+      updateSource(artIdx, srcIdx, '');
+    } finally {
+      setUploading(u => ({ ...u, [key]: false }));
+    }
+  };
+
+  const clearUpload = (artIdx: number, srcIdx: number) => {
+    const key = fileKey(artIdx, srcIdx);
+    setUploadedFiles(f => { const n = { ...f }; delete n[key]; return n; });
+  };
 
   // ── Loading ticker ─────────────────────────────────────
   const startLoading = useCallback(() => {
@@ -243,8 +269,8 @@ export default function CreateArticlePage() {
   const handleGenerate = async () => {
     setError('');
     if (mode === 'editor') {
-      const valid = articles.filter(a => a.sources.some(s => s.trim()));
-      if (!valid.length) { setError('Please provide at least one article with a source URL.'); return; }
+      const valid = articles.filter((a, i) => a.sources.some((s, si) => s.trim() || uploadedFiles[fileKey(i, si)]));
+      if (!valid.length) { setError('Please provide at least one source URL or uploaded file.'); return; }
     } else {
       if (!categories.some(c => c.trim())) { setError('Please provide at least one category.'); return; }
     }
@@ -253,8 +279,14 @@ export default function CreateArticlePage() {
       let payload: object;
       if (mode === 'editor') {
         const arts = articles
-          .filter(a => a.sources.some(s => s.trim()))
-          .map(a => ({ sources: a.sources.filter(s => s.trim()), topic: a.topic.trim() }));
+          .map((a, i) => ({
+            sources: a.sources.map((s, si) => {
+              const up = uploadedFiles[fileKey(i, si)];
+              return up ? `inline:${up.text}` : s;
+            }).filter(s => s.trim()),
+            topic: a.topic.trim(),
+          }))
+          .filter(a => a.sources.length > 0);
         payload = { articles: arts, tone, mood, ...(wordCount ? { wordCount: parseInt(wordCount) } : {}) };
       } else {
         const wl = whitelist.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
@@ -397,15 +429,46 @@ export default function CreateArticlePage() {
                         <label style={lbl}>Angle (optional)</label>
                         <input style={inp} value={art.topic} onChange={e => updateArticleTopic(i, e.target.value)} placeholder="e.g. Lead with funding implications for QLD tech" />
                       </div>
-                      <label style={lbl}>Source URLs</label>
+                      <label style={lbl}>Sources</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '7px' }}>
-                        {art.sources.map((src, si) => (
-                          <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, width: '14px', textAlign: 'right', flexShrink: 0 }}>{si + 1}</span>
-                            <input style={{ ...inp, flex: 1 }} type="url" value={src} onChange={e => updateSource(i, si, e.target.value)} placeholder="https://…" />
-                            {si > 0 && <button onClick={() => removeSource(i, si)} style={{ width: '24px', height: '24px', borderRadius: '4px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>×</button>}
-                          </div>
-                        ))}
+                        {art.sources.map((src, si) => {
+                          const key = fileKey(i, si);
+                          const up = uploadedFiles[key];
+                          const isUploading = uploading[key];
+                          const fileInputRef = { current: null as HTMLInputElement | null };
+                          return (
+                            <div key={si} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, width: '14px', textAlign: 'right', flexShrink: 0 }}>{si + 1}</span>
+                                {up ? (
+                                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', background: VS.bg3, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '6px 10px' }}>
+                                    <Paperclip size={11} style={{ color: VS.accent, flexShrink: 0 }} />
+                                    <span style={{ flex: 1, fontSize: '11px', color: VS.text1, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{up.name}</span>
+                                    <button onClick={() => clearUpload(i, si)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, display: 'flex', padding: 0 }}><X size={12} /></button>
+                                  </div>
+                                ) : (
+                                  <input style={{ ...inp, flex: 1 }} type="url" value={src} onChange={e => updateSource(i, si, e.target.value)} placeholder="https://…" />
+                                )}
+                                <input
+                                  ref={fileInputRef}
+                                  type="file"
+                                  accept=".txt,.pdf,.doc,.docx"
+                                  style={{ display: 'none' }}
+                                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(i, si, f); e.target.value = ''; }}
+                                />
+                                <button
+                                  onClick={() => fileInputRef.current?.click()}
+                                  disabled={isUploading}
+                                  title="Upload file (.txt, .pdf, .docx)"
+                                  style={{ width: '28px', height: '28px', borderRadius: '4px', border: `1px solid ${up ? VS.accent : VS.border}`, background: up ? VS.accentGlow : 'transparent', color: up ? VS.accent : VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: isUploading ? 0.5 : 1 }}
+                                >
+                                  {isUploading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Paperclip size={11} />}
+                                </button>
+                                {si > 0 && <button onClick={() => { removeSource(i, si); clearUpload(i, si); }} style={{ width: '24px', height: '24px', borderRadius: '4px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>×</button>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                       <button onClick={() => addSource(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}>+ Source</button>
                     </div>
