@@ -1,191 +1,234 @@
 'use client';
 
-import { useState } from 'react';
-import { useDashboard } from '@/lib/store';
-import { POST_STATUSES, POST_TYPES } from '@/lib/constants';
-import { PostStatus, PostType } from '@/lib/types';
-import StatusChip from '@/components/shared/StatusChip';
-import TypeChip from '@/components/shared/TypeChip';
-import { CalendarDays, Plus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Camera, ExternalLink, Heart, MessageCircle, Eye, TrendingUp, Users, RefreshCw } from 'lucide-react';
+
+const VS = {
+  bg0: '#1e1e1e', bg1: '#252526', bg2: '#2d2d2d',
+  border: '#3c3c3c', text0: '#f0f0f0', text1: '#cccccc', text2: '#909090',
+  accent: '#007acc', green: '#4ec9b0', red: '#f44747', yellow: '#dcdcaa',
+  pink: '#E1306C',
+};
+
+type Post = {
+  id: string;
+  creatorName: string;
+  platform: string;
+  postUrl: string;
+  postDate: string | null;
+  views: number;
+  likes: number;
+  commentsCount: number;
+  shares: number;
+  saves: number;
+  caption: string;
+  engagementRate: number;
+  durationSeconds: number;
+  scrapedAt: string;
+};
+
+function fmt(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  return `${n}`;
+}
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(diff / 86400000);
+  if (d === 0) return 'today';
+  if (d === 1) return 'yesterday';
+  if (d < 30)  return `${d}d ago`;
+  const m = Math.floor(d / 30);
+  return `${m}mo ago`;
+}
 
 export default function InstagramPage() {
-  const { posts, addPost } = useDashboard();
-  const instagramPosts = posts.filter((p) => p.platform === 'Instagram');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creator, setCreator] = useState<string>('All');
+  const [sort, setSort] = useState<'engagement' | 'views' | 'likes' | 'recent'>('engagement');
 
-  const [statusFilter, setStatusFilter] = useState<PostStatus | 'All'>('All');
-  const [typeFilter, setTypeFilter] = useState<PostType | 'All Types'>('All Types');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [formTitle, setFormTitle] = useState('');
-  const [formCaption, setFormCaption] = useState('');
-  const [formType, setFormType] = useState<PostType>('Reel');
-  const [formStatus, setFormStatus] = useState<PostStatus>('Ready to Create');
-  const [formDate, setFormDate] = useState('');
-
-  const filtered = instagramPosts.filter((p) => {
-    if (statusFilter !== 'All' && p.status !== statusFilter) return false;
-    if (typeFilter !== 'All Types' && p.type !== typeFilter) return false;
-    return true;
-  });
-
-  const handleAddPost = () => {
-    if (!formTitle.trim()) return;
-    addPost({ title: formTitle, caption: formCaption, platform: 'Instagram', status: formStatus, type: formType, scheduledDate: formDate || null });
-    setFormTitle(''); setFormCaption(''); setFormType('Reel'); setFormStatus('Ready to Create'); setFormDate('');
-    setIsModalOpen(false);
+  const fetchPosts = () => {
+    setLoading(true);
+    fetch('/api/creator-posts?platform=instagram&limit=200')
+      .then(r => r.json())
+      .then(d => setPosts(Array.isArray(d) ? d : []))
+      .catch(() => setPosts([]))
+      .finally(() => setLoading(false));
   };
 
+  useEffect(() => { fetchPosts(); }, []);
+
+  const creators = ['All', ...Array.from(new Set(posts.map(p => p.creatorName))).sort()];
+
+  const filtered = posts
+    .filter(p => creator === 'All' || p.creatorName === creator)
+    .sort((a, b) => {
+      if (sort === 'engagement') return b.engagementRate - a.engagementRate;
+      if (sort === 'views')      return b.views - a.views;
+      if (sort === 'likes')      return b.likes - a.likes;
+      return new Date(b.postDate ?? b.scrapedAt).getTime() - new Date(a.postDate ?? a.scrapedAt).getTime();
+    });
+
+  const totalPosts   = filtered.length;
+  const avgEng       = totalPosts ? (filtered.reduce((s, p) => s + p.engagementRate, 0) / totalPosts) : 0;
+  const totalLikes   = filtered.reduce((s, p) => s + p.likes, 0);
+  const totalViews   = filtered.reduce((s, p) => s + p.views, 0);
+
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ color: VS.text0 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            Instagram
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>{instagramPosts.length} pieces of content</p>
+          <h1 className="text-[22px] font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>Instagram</h1>
+          <p className="text-[12px] mt-0.5" style={{ color: VS.text2, fontFamily: 'monospace' }}>// scraped creator posts</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--accent)', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+          onClick={fetchPosts}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px]"
+          style={{ background: VS.bg1, border: `1px solid ${VS.border}`, color: VS.text2 }}
         >
-          <Plus size={14} /> New
+          <RefreshCw className="h-3.5 w-3.5" />Refresh
         </button>
       </div>
 
-      {/* Status Filter Pills */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-        {(['All', ...POST_STATUSES] as const).map((s) => {
-          const isActive = statusFilter === s;
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: 'Total Posts',   value: totalPosts,        color: VS.text0,  icon: Camera },
+          { label: 'Avg Engagement',value: `${avgEng.toFixed(2)}%`, color: VS.green,  icon: TrendingUp },
+          { label: 'Total Likes',   value: fmt(totalLikes),   color: VS.pink,   icon: Heart },
+          { label: 'Total Views',   value: fmt(totalViews),   color: VS.accent, icon: Eye },
+        ].map(stat => {
+          const Icon = stat.icon;
           return (
+            <div key={stat.label} className="rounded-lg px-4 py-3 flex items-center gap-3" style={{ background: VS.bg1, border: `1px solid ${VS.border}` }}>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${stat.color}18` }}>
+                <Icon className="h-4 w-4" style={{ color: stat.color }} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest" style={{ color: VS.text2, fontFamily: 'monospace' }}>{stat.label}</p>
+                <p className="text-[18px] font-bold" style={{ color: stat.color }}>{stat.value}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        {/* Creator filter */}
+        <div className="flex flex-wrap gap-1.5">
+          {creators.map(c => (
+            <button
+              key={c}
+              onClick={() => setCreator(c)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px]"
+              style={{
+                background: creator === c ? `${VS.pink}22` : VS.bg1,
+                border: `1px solid ${creator === c ? VS.pink : VS.border}`,
+                color: creator === c ? VS.pink : VS.text2,
+                fontWeight: creator === c ? 600 : 400,
+              }}
+            >
+              {c !== 'All' && <Users className="h-3 w-3" />}{c}
+            </button>
+          ))}
+        </div>
+
+        <div className="ml-auto flex gap-1.5">
+          {(['engagement', 'views', 'likes', 'recent'] as const).map(s => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s as PostStatus | 'All')}
-              style={{ padding: '5px 12px', borderRadius: '999px', border: '1px solid', borderColor: isActive ? 'var(--accent)' : 'var(--border)', backgroundColor: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#FFFFFF' : 'var(--text-inactive)', fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
+              onClick={() => setSort(s)}
+              className="px-3 py-1.5 rounded-md text-[12px] capitalize"
+              style={{
+                background: sort === s ? `${VS.accent}22` : VS.bg1,
+                border: `1px solid ${sort === s ? VS.accent : VS.border}`,
+                color: sort === s ? VS.accent : VS.text2,
+                fontWeight: sort === s ? 600 : 400,
+              }}
             >
               {s}
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
-      {/* Type Filter Pills */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '24px' }}>
-        {(['All Types', ...POST_TYPES] as const).map((t) => {
-          const isActive = typeFilter === t;
-          return (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t as PostType | 'All Types')}
-              style={{ padding: '5px 12px', borderRadius: '999px', border: '1px solid', borderColor: isActive ? 'var(--border-light)' : 'var(--border)', backgroundColor: isActive ? 'var(--bg-chip-type)' : 'transparent', color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
+      {/* Posts grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20 text-[13px]" style={{ color: VS.text2 }}>
+          Loading posts...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3" style={{ color: VS.text2 }}>
+          <Camera className="h-8 w-8 opacity-30" />
+          <p className="text-[13px]">No Instagram posts yet — add a source on the Social Sources page</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {filtered.map(post => (
+            <div
+              key={post.id}
+              className="rounded-xl p-4 flex flex-col gap-3"
+              style={{ background: VS.bg1, border: `1px solid ${VS.border}` }}
             >
-              {t}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-        {filtered.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px', color: 'var(--text-faint)', fontSize: '14px' }}>
-            No posts match the current filters.
-          </div>
-        ) : (
-          filtered.map((post) => <PostCard key={post.id} post={post} />)
-        )}
-      </div>
-
-      {/* Add Post Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text-primary)', maxWidth: '480px' }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
-              Add New Instagram Post
-            </DialogTitle>
-          </DialogHeader>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
-            <div>
-              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Title</label>
-              <input
-                value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Post title..."
-                style={{ width: '100%', padding: '8px 12px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Caption</label>
-              <textarea
-                value={formCaption} onChange={(e) => setFormCaption(e.target.value)} placeholder="Write your caption..." rows={3}
-                style={{ width: '100%', padding: '8px 12px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Type</label>
-                <select
-                  value={formType} onChange={(e) => setFormType(e.target.value as PostType)}
-                  style={{ width: '100%', padding: '8px 12px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
-                >
-                  {POST_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
+              {/* Creator + date */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold" style={{ background: `${VS.pink}22`, color: VS.pink }}>
+                    {post.creatorName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-[12px] font-medium" style={{ color: VS.text1 }}>{post.creatorName}</span>
+                </div>
+                <span className="text-[11px]" style={{ color: VS.text2 }}>
+                  {post.postDate ? timeAgo(post.postDate) : timeAgo(post.scrapedAt)}
+                </span>
               </div>
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Status</label>
-                <select
-                  value={formStatus} onChange={(e) => setFormStatus(e.target.value as PostStatus)}
-                  style={{ width: '100%', padding: '8px 12px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
+
+              {/* Caption */}
+              <p className="text-[12px] leading-relaxed line-clamp-3" style={{ color: VS.text2 }}>
+                {post.caption || '—'}
+              </p>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { icon: Heart,          value: fmt(post.likes),        color: VS.pink,   label: 'likes' },
+                  { icon: MessageCircle,  value: fmt(post.commentsCount), color: VS.accent, label: 'comments' },
+                  { icon: Eye,            value: fmt(post.views),         color: VS.yellow, label: 'views' },
+                ].map(m => {
+                  const Icon = m.icon;
+                  return (
+                    <div key={m.label} className="flex flex-col items-center gap-0.5 rounded-lg py-2" style={{ background: VS.bg2 }}>
+                      <Icon className="h-3.5 w-3.5" style={{ color: m.color }} />
+                      <span className="text-[13px] font-semibold" style={{ color: VS.text0 }}>{m.value}</span>
+                      <span className="text-[9px] uppercase tracking-wider" style={{ color: VS.text2 }}>{m.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Engagement + link */}
+              <div className="flex items-center justify-between pt-1" style={{ borderTop: `1px solid ${VS.border}` }}>
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="h-3 w-3" style={{ color: VS.green }} />
+                  <span className="text-[12px] font-semibold" style={{ color: VS.green }}>{post.engagementRate.toFixed(2)}%</span>
+                  <span className="text-[11px]" style={{ color: VS.text2 }}>eng rate</span>
+                </div>
+                <a
+                  href={post.postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded-md"
+                  style={{ background: VS.bg2, color: VS.text2, textDecoration: 'none', border: `1px solid ${VS.border}` }}
                 >
-                  {POST_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                  <ExternalLink className="h-3 w-3" />View
+                </a>
               </div>
             </div>
-
-            <div>
-              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Scheduled Date (optional)</label>
-              <input
-                type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', colorScheme: 'dark' }}
-              />
-            </div>
-
-            <button
-              onClick={handleAddPost}
-              style={{ padding: '10px', backgroundColor: 'var(--accent)', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '14px', fontWeight: 600, cursor: 'pointer', marginTop: '4px' }}
-            >
-              Add Post
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function PostCard({ post }: { post: ReturnType<typeof useDashboard>['posts'][0] }) {
-  const caption = post.caption.length > 80 ? post.caption.slice(0, 80) + '…' : post.caption;
-
-  return (
-    <div
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', transition: 'border-color 0.15s', cursor: 'default' }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-light)'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
-    >
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-        <StatusChip status={post.status} />
-        <TypeChip type={post.type} />
-      </div>
-      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.3' }}>{post.title}</div>
-      <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', flex: 1 }}>{caption}</div>
-      {post.scheduledDate && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: 'auto' }}>
-          <CalendarDays size={12} style={{ color: 'var(--text-faint)' }} />
-          <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
-            {new Date(post.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </span>
+          ))}
         </div>
       )}
     </div>
