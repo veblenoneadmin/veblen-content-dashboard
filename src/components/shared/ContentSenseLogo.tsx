@@ -8,10 +8,12 @@ interface Props {
 }
 
 export default function ContentSenseLogo({ width = 340, showTagline = true, style, className }: Props) {
-  // When tagline is hidden, crop viewBox to just the icon + wordmark row
-  const viewBox = showTagline ? '0 0 680 160' : '0 0 680 100';
-  const aspectH = showTagline ? 160 : 100;
-  const height = Math.round(width * (aspectH / 680));
+  // When tagline is hidden, crop viewBox tightly to icon + wordmark — removes empty right space
+  // so the text renders much larger at the same pixel width
+  const viewBox = showTagline ? '0 0 680 160' : '0 22 500 86';
+  const aspectW = showTagline ? 680 : 500;
+  const aspectH = showTagline ? 160 : 86;
+  const height = Math.round(width * (aspectH / aspectW));
   return (
     <svg
       width={width}

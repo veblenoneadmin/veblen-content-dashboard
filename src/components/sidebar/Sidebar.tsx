@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           className="flex h-14 items-center justify-between px-4 shrink-0"
           style={{ borderBottom: `1px solid ${VS.border}` }}
         >
-          <ContentSenseLogo width={200} showTagline={false} />
+          <ContentSenseLogo width={210} showTagline={false} />
           <button
             className="md:hidden flex items-center justify-center h-7 w-7 rounded-lg"
             style={{ color: VS.text2 }}
