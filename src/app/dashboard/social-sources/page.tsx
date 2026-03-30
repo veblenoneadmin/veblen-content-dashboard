@@ -51,7 +51,7 @@ function fmt(n: number) {
 }
 
 const SEED: SocialSource[] = [
-  { id: '1', platform: 'YouTube',    handle: '@VeblenGroup',    url: 'https://youtube.com/@VeblenGroup',    status: 'connected',    followers: 24800,  lastSync: '2026-03-30T08:00:00Z', notes: 'Main channel — weekly uploads' },
+  { id: '1', platform: 'YouTube',    handle: '@VeblenGroup',    url: 'https://youtube.com/@VeblenGroup',    status: 'pending',    followers: 0,  lastSync: '', notes: 'Main channel — weekly uploads' },
   { id: '2', platform: 'Instagram',  handle: '@veblengroup',    url: 'https://instagram.com/veblengroup',   status: 'connected',    followers: 355900, lastSync: '2026-03-30T07:30:00Z', notes: 'Primary brand account' },
   { id: '3', platform: 'LinkedIn',   handle: 'Veblen Group',    url: 'https://linkedin.com/company/veblen', status: 'connected',    followers: 18200,  lastSync: '2026-03-29T22:00:00Z', notes: 'Thought leadership content' },
   { id: '4', platform: 'Twitter/X',  handle: '@VeblenGroup',    url: 'https://x.com/VeblenGroup',           status: 'disconnected', followers: 4100,   lastSync: '2026-03-25T14:00:00Z', notes: 'API key expired — needs refresh' },
@@ -60,9 +60,27 @@ const SEED: SocialSource[] = [
 
 const EMPTY_FORM = { platform: 'YouTube' as Platform, handle: '', url: '', notes: '' };
 
+async function fetchYouTubeChannel(handle: string): Promise<{ subscribers: number; title: string } | null> {
+  const key = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+  if (!key) return null;
+  const clean = handle.replace(/^@/, '');
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&forHandle=${clean}&key=${key}`
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  const item = data.items?.[0];
+  if (!item) return null;
+  return {
+    subscribers: parseInt(item.statistics?.subscriberCount ?? '0', 10),
+    title: item.snippet?.title ?? handle,
+  };
+}
+
 function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: SocialSource) => void }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const inp: React.CSSProperties = {
     background: VS.bg0, border: `1px solid ${VS.border}`, borderRadius: '6px',
@@ -83,18 +101,35 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
     setForm(f => ({ ...f, url, handle }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError('');
     if (!form.url.trim())    { setError('URL is required.'); return; }
     if (!form.handle.trim()) { setError('Handle is required.'); return; }
+
+    setLoading(true);
+    let followers = 0;
+    let status: Status = 'pending';
+
+    if (form.platform === 'YouTube') {
+      const yt = await fetchYouTubeChannel(form.handle.trim());
+      if (yt) {
+        followers = yt.subscribers;
+        status = 'connected';
+      } else {
+        setError('Could not fetch YouTube channel — check the handle and try again.');
+        setLoading(false);
+        return;
+      }
+    }
+
     onSave({
       id: Date.now().toString(),
       platform: form.platform,
       handle: form.handle.trim(),
       url: form.url.trim(),
-      status: 'pending',
-      followers: 0,
-      lastSync: '',
+      status,
+      followers,
+      lastSync: status === 'connected' ? new Date().toISOString() : '',
       notes: form.notes.trim(),
     });
     onClose();
@@ -173,10 +208,11 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
             </button>
             <button
               onClick={handleSave}
+              disabled={loading}
               className="px-4 py-2 rounded-md text-[13px] font-medium"
-              style={{ background: VS.accent, color: '#fff', border: 'none' }}
+              style={{ background: loading ? '#005a9e' : VS.accent, color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
             >
-              Add Source
+              {loading ? 'Connecting...' : 'Add Source'}
             </button>
           </div>
         </div>
