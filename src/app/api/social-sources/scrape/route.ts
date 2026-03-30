@@ -79,7 +79,41 @@ async function scrapeAndSave(platform: string, handle: string, url: string, sour
     }
   }
 
-  if (platform === 'LinkedIn' || platform === 'Twitter/X' || platform === 'Other') {
+  if (platform === 'LinkedIn') {
+    if (!token) throw new Error('APIFY_API_TOKEN not set');
+    const res = await fetch(
+      `${APIFY}/bebity~linkedin-scraper/run-sync-get-dataset-items?token=${token}&timeout=120`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startUrls: [{ url }], maxPosts: 30 }),
+      }
+    );
+    if (!res.ok) throw new Error(`Apify LinkedIn ${res.status}: ${await res.text()}`);
+    const posts = await res.json();
+    for (const d of posts) {
+      const likes    = Number(d.numLikes ?? d.likesCount ?? d.likes ?? 0);
+      const comments = Number(d.numComments ?? d.commentsCount ?? d.comments ?? 0);
+      const shares   = Number(d.numShares ?? d.sharesCount ?? d.shares ?? 0);
+      const engBase  = likes > 0 ? likes * 10 : 1;
+      await fetch(`${BACKEND}/api/creator-posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creator_name: creatorName, platform: 'linkedin',
+          post_url: d.postUrl ?? d.url ?? '',
+          post_date: d.postedAt ?? d.date ?? null,
+          views: 0, likes, comments_count: comments, shares, saves: 0,
+          caption: d.text ?? d.content ?? d.description ?? '',
+          hashtags: '{}', audio: '', duration_seconds: 0,
+          engagement_rate: Math.round(((likes + comments + shares) / engBase) * 1000000) / 10000,
+          video_download_url: '', transcript: '',
+        }),
+      });
+    }
+  }
+
+  if (platform === 'Twitter/X' || platform === 'Other') {
     // No scraper available — just mark as connected so the URL is tracked
   }
 
