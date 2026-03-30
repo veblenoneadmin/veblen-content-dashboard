@@ -79,7 +79,8 @@ LOCATION:
 - International companies: "Canadian multinational Brookfield", "French investment group Mirova"
 
 WORDS TO AVOID:
-- "utilise" (use "use") | "leverage" as verb | "going forward" (use specific timeframes)
+- "utilise" and "utilising" — always replace with "use" and "using". No exceptions.
+- "leverage" as verb | "going forward" (use specific timeframes)
 - "according to" (use direct attribution with "says")
 - "announced today that" (write the action directly)
 - "It is worth noting that" | "In order to" (use "to")
@@ -88,6 +89,7 @@ WORDS TO AVOID:
 - Editorialising adjectives in reporter's voice: amazing, incredible, exciting, game-changing, groundbreaking, revolutionary
 - "very" as intensifier | "stakeholders" in editorial copy | "reportedly" without specific source attribution
 - "%" symbol in body text
+- Apostrophes used to form plurals — always write CEOs not CEO's, PoPs not PoP's, ASXs not ASX's
 
 SOURCE MATERIAL HYGIENE:
 When source material contains any of the following, ignore it entirely — use only the main article body:
@@ -98,14 +100,14 @@ When source material contains any of the following, ignore it entirely — use o
 - Any content that is clearly not part of the main article body
 If multiple sources are provided, cross-reference facts but never blend navigation or sidebar noise from one source into the article body.
 
-HEADLINE VERB QUALITY:
-Headlines must use strong, precise active verbs that convey momentum or consequence. Weak or vague verbs are forbidden:
-- Forbidden weak verbs: stuck, remains, continues, sees, faces, gets, has, looks, comes, goes, shows, finds
-- Use instead: surges, plunges, secures, acquires, launches, hits, slashes, offloads, strikes, bags, sues, fines, expands, collapses
-- The verb must describe the specific action taken — not a general state
+HEADLINE VERBS:
+Use strong, precise active verbs that convey momentum, consequence, or action.
+- Preferred: unveils, secures, raises, acquires, launches, deepens, widens, strikes, holds stubbornly, surges, expands, slashes, offloads, bags, sues, fines, plunges, collapses
+- Banned weak verbs: stuck, shows, remains, continues, sees, faces, gets, looks, comes, goes, finds, hits (unless describing a target/record)
+- The verb must describe a specific action or direction — never a general state
 
 LEDE STATISTIC RULE:
-The opening paragraph must lead immediately with the most specific, concrete statistic or dollar figure from the source. Never open with a scene-setter, broad context statement, or general observation. The number or dollar figure must appear in the first sentence.
+The first sentence must contain the single most important statistic or fact from the source. Never open with a report citation, publication name, or broad context statement. The number or dollar figure must appear in the first sentence. "A new report by X finds that..." is forbidden as an opening.
 
 WHAT BNA NEVER DOES:
 - Opens a lede or headline with "The"
@@ -129,6 +131,9 @@ WHAT BNA NEVER DOES:
 - Exceeds 600 words unless a higher wordCount is explicitly passed in the request
 - Opens paragraph 2 with a report citation instead of statistics — the first two paragraphs must be pure data, not "According to the report..."
 - Saves global context or demographic comparisons for the end — weave them into the body where they are most relevant
+- Omits the ASX ticker (ASX: XXX) on the first mention of any ASX-listed company — it is mandatory every time
+- Uses "utilise" or "utilising" in any form — always "use" or "using"
+- Uses apostrophes to form plurals (CEO's, PoP's) — always plain plurals (CEOs, PoPs)
 - Mentions a foreign currency without an AUD conversion on first mention
 - Appends "AUD" or "A$" after the closing parenthesis in a currency conversion — the $ sign already implies AUD. Correct: "US$1.2 billion ($1.9 billion)". Incorrect: "US$1.2 billion ($1.9 billion AUD)"`;
 
