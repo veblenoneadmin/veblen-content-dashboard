@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (name.endsWith('.pdf')) {
+      // pdf-parse uses pdfjs-dist which requires DOMMatrix (browser API) — polyfill for Node.js
+      if (typeof (globalThis as Record<string, unknown>).DOMMatrix === 'undefined') {
+        (globalThis as Record<string, unknown>).DOMMatrix = class DOMMatrix {
+          static fromMatrix() { return new (globalThis as { DOMMatrix: new () => object }).DOMMatrix(); }
+        };
+      }
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const pdfParse = require('pdf-parse');
       const data = await pdfParse(buffer);

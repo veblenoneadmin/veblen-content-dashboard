@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 
 const N8N_WEBHOOK_URL = 'https://primary-s0q-production.up.railway.app/webhook/generate-articles';
 
@@ -121,9 +122,7 @@ async function generateFromInline(
   mood: string,
   wordCount: number,
 ): Promise<{ index: number; topic: string; articleText: string }[]> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const results = [];
   for (let i = 0; i < articles.length; i++) {
