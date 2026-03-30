@@ -38,8 +38,8 @@ ARTICLE STRUCTURE (hard news):
 9. Share price note (ASX stories): "Shares in X were trading Y per cent higher/lower at $Z at [time] (AEST)."
 
 QUOTES & ATTRIBUTION:
-- "says" (present tense) is the default — NEVER "said" for live/current quotes
-- "said" only for written documents, ASX announcements, court proceedings
+- "says" (present tense) ONLY for live, original interview content spoken directly to a reporter
+- "said" or "wrote" for ALL historical quotes, written memoirs, press releases, ASX announcements, court documents, books, or any written/published source — never "says" for these
 - Quote first, then attribution: "'We are excited,' says CEO John Smith."
 - Full name + title + company on first attribution; surname only after that
 - "adds" for follow-on quotes from same speaker
@@ -63,7 +63,7 @@ MONEY & NUMBERS:
 - Headlines: "$49m", "$1.2b", "42pc"
 - Always "$" symbol — never spell out "dollars"
 - "per cent" always two words in body — never "%"
-- Foreign currency: US$33 million ($49 million AUD) — AUD conversion in parentheses
+- Foreign currency: always include AUD conversion in parentheses on first mention — e.g. US$33 million ($49 million AUD), DKK 3,000 (approximately $650 AUD), €50 million (approximately $82 million AUD). If exact rate is unavailable, use "approximately". This applies to ALL non-AUD currencies including USD, EUR, GBP, DKK, NZD, JPY, etc.
 - Financial years: FY24, FY25 (no full stops)
 - Share prices include timestamp: "at 11.39am (AEDT)"
 - Numbers one to nine spelled out in body; 10+ as numerals
@@ -89,9 +89,11 @@ WHAT BNA NEVER DOES:
 - Opens a lede or headline with "The"
 - Opens an article with a quote — lede is always journalist prose
 - Uses "said" for live/current quotes (always "says")
+- Uses "says" for historical, written, or document-sourced quotes (always "said" or "wrote")
 - Uses the % symbol in body text — always "per cent"
 - Uses passive voice in ledes
-- Writes a summary conclusion paragraph — end on quote, fact, or share price
+- Writes a summary conclusion paragraph — the article MUST end on a quote, a financial metric, or a contextual fact. Never wrap up with the reporter's interpretation.
+- Uses editorialising verbs like "underscores", "demonstrates", "proves", "highlights", "reveals" in reporter voice — these are forbidden
 - Uses exclamation marks in editorial copy
 - Omits ASX ticker on first mention of a listed company
 - Omits city-based descriptor on first mention of a company
@@ -100,7 +102,34 @@ WHAT BNA NEVER DOES:
 - Uses editorialising adjectives in reporter voice
 - Generates or infers quotes not present in the source document
 - Uses anonymous sources as standard practice
-- Writes paragraphs longer than 4 sentences`;
+- Writes paragraphs longer than 4 sentences
+- Mentions a foreign currency without an AUD conversion on first mention
+
+MANDATORY OUTPUT FORMAT:
+After the article body, always append the following three sections exactly as shown:
+
+---
+## Headline Variants
+Provide 3–5 alternative headlines, each labelled with its pattern type:
+- [Company + verb + outcome]: ...
+- [Wordplay/pun]: ...
+- [Contrast/tension]: ...
+- [Number-led]: ...
+- [Question]: ...
+
+## Editor Q&A
+[Leave this section blank for the editor to fill in with follow-up questions]
+
+## Fact-Check Checklist
+- [ ] Dollar figure matches source
+- [ ] ASX ticker included on first mention (if listed)
+- [ ] City-based descriptor on first mention
+- [ ] All quotes attributed to named individuals from the source
+- [ ] No summary conclusion paragraph
+- [ ] Headline does not start with "The"
+- [ ] Announcement date confirmed as current (within 2–3 days)
+- [ ] Foreign currency converted to AUD on first mention
+- [ ] Attribution verb correct (says = live interview; said/wrote = written/historical source)`;
 
 const TONE_MAP: Record<string, string> = {
   'Authoritative': 'Use a confident, expert tone. Make definitive statements backed by evidence. No hedging or qualifiers.',
@@ -138,7 +167,7 @@ async function generateFromInline(
       + '\nFORMAT: ' + (MOOD_MAP[mood] || MOOD_MAP['News Report'])
       + '\nTARGET LENGTH: approximately ' + wordCount + ' words'
       + (art.topic ? '\nANGLE/FOCUS: ' + art.topic : '')
-      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Completely original rewrite — same core facts, entirely new sentences\n- Do not copy any sentence from the source verbatim\n- Follow the style profile above exactly\n- Include a headline\n- Ground the article in the specific facts, names, companies, and data from the sources\n- Do not invent facts, quotes, or statistics not present in the sources\n- End with either a forward-looking insight, a resonant quote, or a share price note'
+      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly including the MANDATORY OUTPUT FORMAT\n- Include a headline\n- Ground the article in facts, names, companies, and data from the sources only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End the article body on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Always append the Headline Variants, Editor Q&A, and Fact-Check Checklist after the article'
       + '\n\nSource material:\n' + sourceText;
 
     const message = await client.messages.create({
