@@ -104,34 +104,7 @@ WHAT BNA NEVER DOES:
 - Uses anonymous sources as standard practice
 - Writes paragraphs longer than 4 sentences
 - Mentions a foreign currency without an AUD conversion on first mention
-- Appends "AUD" or "A$" after the closing parenthesis in a currency conversion — the $ sign already implies AUD. Correct: "US$1.2 billion ($1.9 billion)". Incorrect: "US$1.2 billion ($1.9 billion AUD)"
-
-MANDATORY OUTPUT FORMAT:
-After the article body, always append the following three sections exactly as shown:
-
----
-## Headline Variants
-Provide 3–5 alternative headlines, each labelled with its pattern type:
-- [Company + verb + outcome]: ...
-- [Wordplay/pun]: ...
-- [Contrast/tension]: ...
-- [Number-led]: ...
-- [Question]: ...
-
-## Editor Q&A
-[Leave this section blank for the editor to fill in with follow-up questions]
-
-## Fact-Check Checklist
-After generating the article, auto-tick every item you can verify from the article itself. Only leave items unchecked if they require human verification against the original source document.
-- [ ] Dollar figure matches source — HUMAN CHECK REQUIRED
-- [ ] ASX ticker included on first mention (if listed) — auto-tick ✅ if ticker appears, or mark N/A if company is not ASX-listed
-- [ ] City-based descriptor on first mention — auto-tick ✅ if present in the article
-- [ ] All quotes attributed to named individuals from the source — auto-tick ✅ if all quotes have named attribution
-- [ ] No summary conclusion paragraph — auto-tick ✅ if article ends on quote, metric, or fact
-- [ ] Headline does not start with "The" — auto-tick ✅ if confirmed
-- [ ] Announcement date confirmed as current (within 2–3 days) — HUMAN CHECK REQUIRED
-- [ ] Foreign currency converted to AUD on first mention — auto-tick ✅ if all foreign currencies have AUD conversion, or N/A if no foreign currencies present
-- [ ] Attribution verb correct (says = live interview; said/wrote = written/historical source) — auto-tick ✅ if applied correctly throughout`;
+- Appends "AUD" or "A$" after the closing parenthesis in a currency conversion — the $ sign already implies AUD. Correct: "US$1.2 billion ($1.9 billion)". Incorrect: "US$1.2 billion ($1.9 billion AUD)"`;
 
 const TONE_MAP: Record<string, string> = {
   'Authoritative': 'Use a confident, expert tone. Make definitive statements backed by evidence. No hedging or qualifiers.',
@@ -169,7 +142,7 @@ async function generateFromInline(
       + '\nFORMAT: ' + (MOOD_MAP[mood] || MOOD_MAP['News Report'])
       + '\nTARGET LENGTH: approximately ' + wordCount + ' words'
       + (art.topic ? '\nANGLE/FOCUS: ' + art.topic : '')
-      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly including the MANDATORY OUTPUT FORMAT\n- Include a headline\n- Ground the article in facts, names, companies, and data from the sources only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End the article body on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Always append the Headline Variants, Editor Q&A, and Fact-Check Checklist after the article'
+      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly including the MANDATORY OUTPUT FORMAT\n- Include a headline\n- Ground the article in facts, names, companies, and data from the sources only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End the article body on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Output the article only — no appendices, checklists, or extra sections'
       + '\n\nSource material:\n' + sourceText;
 
     const message = await client.messages.create({
