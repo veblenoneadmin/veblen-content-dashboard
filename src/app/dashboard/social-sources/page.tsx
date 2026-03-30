@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  Plus, X, Play, Camera, Briefcase, Twitter, Globe,
+  Plus, X, Play, Camera, Briefcase, AtSign, Globe,
   CheckCircle2, AlertCircle, Clock, Trash2, ExternalLink,
   RefreshCw, Link2,
 } from 'lucide-react';
@@ -31,7 +31,7 @@ const PLATFORM_META: Record<Platform, { icon: React.ElementType; color: string }
   YouTube:    { icon: Play,      color: '#FF0000' },
   Instagram:  { icon: Camera,    color: '#E1306C' },
   LinkedIn:   { icon: Briefcase, color: '#0A66C2' },
-  'Twitter/X':{ icon: Twitter,   color: '#1DA1F2' },
+  'Twitter/X':{ icon: AtSign,    color: '#1DA1F2' },
   TikTok:     { icon: Globe,     color: '#69C9D0' },
   Other:      { icon: Link2,     color: '#909090' },
 };
@@ -190,11 +190,14 @@ export default function SocialSourcesPage() {
 
   const handleDelete = (id: string) => setSources(s => s.filter(x => x.id !== id));
 
-  const handleSave = (s: SocialSource) => setSources(prev => [...prev, s]);
+  const handleSave = (s: SocialSource) => {
+    setSources(prev => [...prev, s]);
+    setFilter('All');
+    setStatusFilter('All');
+  };
 
-  const connected    = sources.filter(s => s.status === 'connected').length;
-  const disconnected = sources.filter(s => s.status === 'disconnected').length;
-  const pending      = sources.filter(s => s.status === 'pending').length;
+  const connected      = sources.filter(s => s.status === 'connected').length;
+  const disconnected   = sources.filter(s => s.status === 'disconnected').length;
   const totalFollowers = sources.filter(s => s.status === 'connected').reduce((a, b) => a + b.followers, 0);
 
   return (
