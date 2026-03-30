@@ -10,9 +10,9 @@ interface Props {
 export default function ContentSenseLogo({ width = 340, showTagline = true, style, className }: Props) {
   // When tagline is hidden, crop viewBox tightly to icon + wordmark — removes empty right space
   // so the text renders much larger at the same pixel width
-  const viewBox = showTagline ? '0 0 680 160' : '0 22 500 86';
-  const aspectW = showTagline ? 680 : 500;
-  const aspectH = showTagline ? 160 : 86;
+  const viewBox = showTagline ? '0 0 680 160' : '0 24 475 80';
+  const aspectW = showTagline ? 680 : 475;
+  const aspectH = showTagline ? 160 : 80;
   const height = Math.round(width * (aspectH / aspectW));
   return (
     <svg
@@ -27,8 +27,7 @@ export default function ContentSenseLogo({ width = 340, showTagline = true, styl
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap');
           .wm-white { font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: 44px; fill: #D0D8E4; }
-          .wm-cyan  { font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: 44px; fill: #3CC8F5;
-                      filter: drop-shadow(0 0 8px rgba(60,200,245,0.7)) drop-shadow(0 0 18px rgba(60,200,245,0.4)); }
+          .wm-cyan  { font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: 44px; fill: #3CC8F5; }
           .tagline  { font-family: 'Exo 2', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 3.5px; fill: #6B7A8D; }
         `}</style>
         <radialGradient id="cg" cx="40%" cy="35%" r="60%">
