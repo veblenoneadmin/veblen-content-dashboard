@@ -7,7 +7,7 @@
     "dev:backend": "node backend/server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\"",
     "build": "npx prisma generate --schema=backend/prisma/schema.prisma && next build",
-    "start": "sh -c 'node backend/server.js & next start -p ${PORT:-3000}'",
+    "start": "sh -c 'npx prisma db push --schema=backend/prisma/schema.prisma && node backend/server.js & next start -p ${PORT:-3000}'",
     "lint": "eslint",
     "db:generate": "npx prisma generate --schema=backend/prisma/schema.prisma",
     "db:migrate": "npx prisma migrate dev --schema=backend/prisma/schema.prisma",

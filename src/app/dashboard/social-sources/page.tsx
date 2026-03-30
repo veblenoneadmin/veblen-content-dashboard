@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, X, Play, Camera, Briefcase, AtSign, Globe,
   CheckCircle2, AlertCircle, Clock, Trash2, ExternalLink,
@@ -50,13 +50,7 @@ function fmt(n: number) {
   return `${n}`;
 }
 
-const SEED: SocialSource[] = [
-  { id: '1', platform: 'YouTube',    handle: '@VeblenGroup',    url: 'https://youtube.com/@VeblenGroup',    status: 'pending',    followers: 0,  lastSync: '', notes: 'Main channel — weekly uploads' },
-  { id: '2', platform: 'Instagram',  handle: '@veblengroup',    url: 'https://instagram.com/veblengroup',   status: 'connected',    followers: 355900, lastSync: '2026-03-30T07:30:00Z', notes: 'Primary brand account' },
-  { id: '3', platform: 'LinkedIn',   handle: 'Veblen Group',    url: 'https://linkedin.com/company/veblen', status: 'connected',    followers: 18200,  lastSync: '2026-03-29T22:00:00Z', notes: 'Thought leadership content' },
-  { id: '4', platform: 'Twitter/X',  handle: '@VeblenGroup',    url: 'https://x.com/VeblenGroup',           status: 'disconnected', followers: 4100,   lastSync: '2026-03-25T14:00:00Z', notes: 'API key expired — needs refresh' },
-  { id: '5', platform: 'TikTok',     handle: '@veblengroup',    url: 'https://tiktok.com/@veblengroup',     status: 'pending',      followers: 0,      lastSync: '',                     notes: 'Account created, waiting for verification' },
-];
+const API = 'https://contentsense.up.railway.app/api/social-sources';
 
 const EMPTY_FORM = { platform: 'YouTube' as Platform, handle: '', url: '', notes: '' };
 
@@ -122,16 +116,23 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
       }
     }
 
-    onSave({
-      id: Date.now().toString(),
+    const body = {
       platform: form.platform,
       handle: form.handle.trim(),
       url: form.url.trim(),
       status,
       followers,
-      lastSync: status === 'connected' ? new Date().toISOString() : '',
-      notes: form.notes.trim(),
+      lastSync: status === 'connected' ? new Date().toISOString() : null,
+      notes: form.notes.trim() || null,
+    };
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
+    if (!res.ok) { setError('Failed to save — please try again.'); setLoading(false); return; }
+    const saved = await res.json();
+    onSave(saved);
     onClose();
   };
 
@@ -222,10 +223,19 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
 }
 
 export default function SocialSourcesPage() {
-  const [sources, setSources] = useState<SocialSource[]>(SEED);
+  const [sources, setSources] = useState<SocialSource[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState<Platform | 'All'>('All');
   const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All');
+
+  useEffect(() => {
+    fetch(API)
+      .then(r => r.json())
+      .then(data => setSources(Array.isArray(data) ? data : []))
+      .catch(() => setSources([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = sources.filter(s => {
     if (filter !== 'All' && s.platform !== filter) return false;
@@ -233,7 +243,10 @@ export default function SocialSourcesPage() {
     return true;
   });
 
-  const handleDelete = (id: string) => setSources(s => s.filter(x => x.id !== id));
+  const handleDelete = async (id: string) => {
+    await fetch(`${API}/${id}`, { method: 'DELETE' });
+    setSources(s => s.filter(x => x.id !== id));
+  };
 
   const handleSave = (s: SocialSource) => {
     setSources(prev => [...prev, s]);
@@ -244,6 +257,12 @@ export default function SocialSourcesPage() {
   const connected      = sources.filter(s => s.status === 'connected').length;
   const disconnected   = sources.filter(s => s.status === 'disconnected').length;
   const totalFollowers = sources.filter(s => s.status === 'connected').reduce((a, b) => a + b.followers, 0);
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20 text-[13px]" style={{ color: VS.text2 }}>
+      Loading sources...
+    </div>
+  );
 
   return (
     <div style={{ color: VS.text0 }}>
