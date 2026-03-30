@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '@/components/sidebar/Sidebar';
+import { isLoggedIn, logout } from '@/lib/auth';
 import {
   Bell, ChevronDown, LogOut, Menu, X,
   CheckCheck, CheckSquare, AlertTriangle,
@@ -66,8 +67,13 @@ function timeAgo(iso: string) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn()) router.replace('/login');
+  }, [router]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState<Notif | null>(null);
   const [notifications] = useState<Notif[]>([]);
@@ -266,6 +272,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <p className="text-[11px] truncate mt-0.5" style={{ color: VS.text2 }}>zac@veblengroup.com.au</p>
                   </div>
                   <button
+                    onClick={() => { logout(); router.replace('/login'); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] transition-colors duration-150"
                     style={{ color: VS.text1, background: 'transparent', border: 'none', cursor: 'pointer' }}
                     onMouseEnter={e => {
