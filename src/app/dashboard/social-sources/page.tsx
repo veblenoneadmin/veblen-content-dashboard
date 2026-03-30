@@ -58,17 +58,22 @@ async function fetchYouTubeChannel(handle: string): Promise<{ subscribers: numbe
   const key = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   if (!key) return null;
   const clean = handle.replace(/^@/, '');
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&forHandle=${clean}&key=${key}`
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  const item = data.items?.[0];
-  if (!item) return null;
-  return {
-    subscribers: parseInt(item.statistics?.subscriberCount ?? '0', 10),
-    title: item.snippet?.title ?? handle,
-  };
+  const base = `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&key=${key}`;
+
+  // Try forHandle first, then forUsername as fallback
+  for (const param of [`forHandle=${clean}`, `forUsername=${clean}`]) {
+    try {
+      const res = await fetch(`${base}&${param}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const item = data.items?.[0];
+      if (item) return {
+        subscribers: parseInt(item.statistics?.subscriberCount ?? '0', 10),
+        title: item.snippet?.title ?? handle,
+      };
+    } catch { continue; }
+  }
+  return null;
 }
 
 function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: SocialSource) => void }) {
@@ -109,11 +114,8 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
       if (yt) {
         followers = yt.subscribers;
         status = 'connected';
-      } else {
-        setError('Could not fetch YouTube channel — check the handle and try again.');
-        setLoading(false);
-        return;
       }
+      // if lookup fails, still save as pending — don't block the user
     }
 
     const body = {
