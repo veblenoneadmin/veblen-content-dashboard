@@ -20,6 +20,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/instagram':      'Instagram',
   '/dashboard/linkedin':       'LinkedIn',
   '/dashboard/create-article': 'Create Article',
+  '/dashboard/social-sources': 'Social Sources',
   '/dashboard/analytics':      'Analytics',
   '/dashboard/calendar':       'Calendar',
   '/dashboard/competitors':    'Competitors',
