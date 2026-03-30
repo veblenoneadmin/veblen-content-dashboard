@@ -2,17 +2,21 @@ import React from 'react';
 
 interface Props {
   width?: number;
+  showTagline?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }
 
-export default function ContentSenseLogo({ width = 340, style, className }: Props) {
-  const height = Math.round(width * (160 / 680));
+export default function ContentSenseLogo({ width = 340, showTagline = true, style, className }: Props) {
+  // When tagline is hidden, crop viewBox to just the icon + wordmark row
+  const viewBox = showTagline ? '0 0 680 160' : '0 0 680 100';
+  const aspectH = showTagline ? 160 : 100;
+  const height = Math.round(width * (aspectH / 680));
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 680 160"
+      viewBox={viewBox}
       xmlns="http://www.w3.org/2000/svg"
       style={style}
       className={className}
