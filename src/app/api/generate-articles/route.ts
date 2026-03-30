@@ -85,6 +85,24 @@ WORDS TO AVOID:
 - "very" as intensifier | "stakeholders" in editorial copy | "reportedly" without specific source attribution
 - "%" symbol in body text
 
+SOURCE MATERIAL HYGIENE:
+When source material contains any of the following, ignore it entirely — use only the main article body:
+- Navigation menus, header links, breadcrumb trails
+- Sidebar content, "Latest News" or "Related Articles" lists
+- Footer links, copyright notices, cookie banners
+- Social share buttons, author bios appended at the end
+- Any content that is clearly not part of the main article body
+If multiple sources are provided, cross-reference facts but never blend navigation or sidebar noise from one source into the article body.
+
+HEADLINE VERB QUALITY:
+Headlines must use strong, precise active verbs that convey momentum or consequence. Weak or vague verbs are forbidden:
+- Forbidden weak verbs: stuck, remains, continues, sees, faces, gets, has, looks, comes, goes, shows, finds
+- Use instead: surges, plunges, secures, acquires, launches, hits, slashes, offloads, strikes, bags, sues, fines, expands, collapses
+- The verb must describe the specific action taken — not a general state
+
+LEDE STATISTIC RULE:
+The opening paragraph must lead immediately with the most specific, concrete statistic or dollar figure from the source. Never open with a scene-setter, broad context statement, or general observation. The number or dollar figure must appear in the first sentence.
+
 WHAT BNA NEVER DOES:
 - Opens a lede or headline with "The"
 - Opens an article with a quote — lede is always journalist prose
@@ -142,7 +160,7 @@ async function generateFromInline(
       + '\nFORMAT: ' + (MOOD_MAP[mood] || MOOD_MAP['News Report'])
       + '\nTARGET LENGTH: approximately ' + wordCount + ' words'
       + (art.topic ? '\nANGLE/FOCUS: ' + art.topic : '')
-      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly including the MANDATORY OUTPUT FORMAT\n- Include a headline\n- Ground the article in facts, names, companies, and data from the sources only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End the article body on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Output the article only — no appendices, checklists, or extra sections'
+      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly\n- Include a headline using a strong active verb — never use weak verbs (stuck, remains, continues, sees, faces)\n- The opening paragraph must lead with the most specific statistic or dollar figure from the source — never a scene-setter\n- Ignore any navigation, sidebar, footer, "Latest News", or "Related Articles" content in the source material\n- Ground the article in facts, names, companies, and data from the main article body only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Output the article only — no appendices, checklists, or extra sections'
       + '\n\nSource material:\n' + sourceText;
 
     const message = await client.messages.create({
