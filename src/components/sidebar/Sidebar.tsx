@@ -4,12 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, Layers, TrendingUp, ClipboardCheck, Tag, ScrollText,
+  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, TrendingUp, ClipboardCheck, Tag, ScrollText,
 } from 'lucide-react';
 
 const navItems = [
   { group: null,          label: 'Home',           href: '/dashboard/home',           icon: House },
-  { group: 'APPS',        label: 'JobSense',        href: '/dashboard/jobsense',       icon: Layers },
   { group: 'RESEARCH',    label: 'News',            href: '/dashboard/news',           icon: Newspaper },
   { group: 'RESEARCH',    label: 'Topics',          href: '/dashboard/topics',         icon: Hash },
   { group: 'RESEARCH',    label: 'Formats',         href: '/dashboard/formats',        icon: Layout },
@@ -30,7 +29,7 @@ const navItems = [
   { group: 'AUTOMATION',  label: 'Transcribe',        href: '/dashboard/transcribe',           icon: Mic },
 ];
 
-const groups = ['APPS', 'RESEARCH', 'CREATE', 'INSIGHTS', 'AUTOMATION'];
+const groups = ['RESEARCH', 'CREATE', 'INSIGHTS', 'AUTOMATION'];
 
 const VS = {
   bg1: '#252526',

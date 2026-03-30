@@ -13,7 +13,6 @@ import {
 
 const pageTitles: Record<string, string> = {
   '/dashboard/home':           'Home',
-  '/dashboard/jobsense':       'JobSense',
   '/dashboard/news':           'News',
   '/dashboard/topics':         'Topics',
   '/dashboard/formats':        'Formats',
