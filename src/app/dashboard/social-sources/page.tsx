@@ -249,6 +249,17 @@ export default function SocialSourcesPage() {
     setSources(s => s.filter(x => x.id !== id));
   };
 
+  const handleResync = async (source: SocialSource) => {
+    setSources(prev => prev.map(s => s.id === source.id ? { ...s, status: 'pending' } : s));
+    await fetch('/api/social-sources/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceId: source.id, platform: source.platform, handle: source.handle, url: source.url }),
+    });
+    const updated = await fetch(`${API}/${source.id}`).then(r => r.json()).catch(() => source);
+    setSources(prev => prev.map(s => s.id === source.id ? updated : s));
+  };
+
   const handleSave = (s: SocialSource) => {
     setSources(prev => [...prev, s]);
     setFilter('All');
@@ -406,6 +417,13 @@ export default function SocialSourcesPage() {
                   >
                     <ExternalLink className="h-3 w-3" />Open
                   </a>
+                  <button
+                    onClick={() => handleResync(source)}
+                    className="flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-md"
+                    style={{ background: VS.bg2, color: VS.text2, border: `1px solid ${VS.border}` }}
+                  >
+                    <RefreshCw className="h-3 w-3" />Resync
+                  </button>
                   <button
                     onClick={() => handleDelete(source.id)}
                     className="flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-md ml-auto"
