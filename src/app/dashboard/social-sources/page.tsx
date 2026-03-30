@@ -74,10 +74,19 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
     textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '5px',
   };
 
+  const handleUrlChange = (url: string) => {
+    let handle = form.handle;
+    if (form.platform === 'YouTube') {
+      const match = url.match(/youtube\.com\/(@[\w.-]+|channel\/[\w-]+|c\/[\w-]+|user\/[\w-]+)/i);
+      if (match) handle = match[1].startsWith('@') ? match[1] : `@${match[1].split('/').pop()}`;
+    }
+    setForm(f => ({ ...f, url, handle }));
+  };
+
   const handleSave = () => {
     setError('');
-    if (!form.handle.trim()) { setError('Handle is required.'); return; }
     if (!form.url.trim())    { setError('URL is required.'); return; }
+    if (!form.handle.trim()) { setError('Handle is required.'); return; }
     onSave({
       id: Date.now().toString(),
       platform: form.platform,
@@ -135,7 +144,7 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
 
           <div>
             <label style={lbl}>// profile url</label>
-            <input style={inp} placeholder="https://..." value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
+            <input style={inp} placeholder="https://..." value={form.url} onChange={e => handleUrlChange(e.target.value)} />
           </div>
 
           <div>
