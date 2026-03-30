@@ -122,7 +122,9 @@ async function generateFromInline(
   mood: string,
   wordCount: number,
 ): Promise<{ index: number; topic: string; articleText: string }[]> {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set — add it to .env.local and restart the dev server');
+  const client = new Anthropic({ apiKey });
 
   const results = [];
   for (let i = 0; i < articles.length; i++) {
