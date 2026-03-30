@@ -224,13 +224,41 @@ export default function CreateArticlePage() {
     const key = fileKey(artIdx, srcIdx);
     setUploading(u => ({ ...u, [key]: true }));
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/parse-file', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setUploadedFiles(f => ({ ...f, [key]: { name: file.name, text: data.text } }));
+      const name = file.name.toLowerCase();
+      let text = '';
+
+      if (name.endsWith('.txt')) {
+        text = await file.text();
+
+      } else if (name.endsWith('.pdf')) {
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pages: string[] = [];
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((i) => ('str' in i ? i.str : '')).join(' '));
+        }
+        text = pages.join('\n\n');
+
+      } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+
+      } else {
+        setError('Unsupported file type. Use .txt, .pdf, or .docx');
+        return;
+      }
+
+      if (!text.trim()) { setError('Could not extract text from file.'); return; }
+      setUploadedFiles(f => ({ ...f, [key]: { name: file.name, text: text.trim() } }));
       updateSource(artIdx, srcIdx, '');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to read file');
     } finally {
       setUploading(u => ({ ...u, [key]: false }));
     }
