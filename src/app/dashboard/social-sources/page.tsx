@@ -131,7 +131,7 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
     });
     if (!res.ok) { setError('Failed to save — please try again.'); setLoading(false); return; }
     const saved = await res.json();
-    if (['TikTok', 'Instagram', 'YouTube'].includes(platform)) {
+    if (['TikTok', 'Instagram', 'YouTube', 'LinkedIn'].includes(platform)) {
       const scrapeRes = await fetch('/api/social-sources/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
