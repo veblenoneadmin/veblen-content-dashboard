@@ -52,80 +52,77 @@ function fmt(n: number) {
 
 const API = '/api/social-sources';
 
-const EMPTY_FORM = { platform: 'YouTube' as Platform, handle: '', url: '', notes: '' };
+function detectFromUrl(url: string): { platform: Platform; handle: string } {
+  if (/youtube\.com|youtu\.be/i.test(url)) {
+    const match = url.match(/youtube\.com\/(@[\w.-]+|channel\/[\w-]+|c\/[\w-]+|user\/[\w-]+)/i);
+    const handle = match ? (match[1].startsWith('@') ? match[1] : `@${match[1].split('/').pop()}`) : url;
+    return { platform: 'YouTube', handle };
+  }
+  if (/instagram\.com/i.test(url)) {
+    const match = url.match(/instagram\.com\/([\w.]+)/i);
+    return { platform: 'Instagram', handle: match ? `@${match[1]}` : url };
+  }
+  if (/linkedin\.com/i.test(url)) {
+    const match = url.match(/linkedin\.com\/(?:company|in)\/([\w-]+)/i);
+    return { platform: 'LinkedIn', handle: match ? match[1] : url };
+  }
+  if (/tiktok\.com/i.test(url)) {
+    const match = url.match(/tiktok\.com\/(@[\w.]+)/i);
+    return { platform: 'TikTok', handle: match ? match[1] : url };
+  }
+  if (/x\.com|twitter\.com/i.test(url)) {
+    const match = url.match(/(?:x|twitter)\.com\/([\w]+)/i);
+    return { platform: 'Twitter/X', handle: match ? `@${match[1]}` : url };
+  }
+  return { platform: 'Other', handle: url };
+}
 
-async function fetchYouTubeChannel(handle: string): Promise<{ subscribers: number; title: string } | null> {
+async function fetchYouTubeChannel(handle: string): Promise<{ subscribers: number } | null> {
   const key = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   if (!key) return null;
   const clean = handle.replace(/^@/, '');
-  const base = `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&key=${key}`;
-
-  // Try forHandle first, then forUsername as fallback
+  const base = `https://www.googleapis.com/youtube/v3/channels?part=statistics&key=${key}`;
   for (const param of [`forHandle=${clean}`, `forUsername=${clean}`]) {
     try {
       const res = await fetch(`${base}&${param}`);
       if (!res.ok) continue;
       const data = await res.json();
       const item = data.items?.[0];
-      if (item) return {
-        subscribers: parseInt(item.statistics?.subscriberCount ?? '0', 10),
-        title: item.snippet?.title ?? handle,
-      };
+      if (item) return { subscribers: parseInt(item.statistics?.subscriberCount ?? '0', 10) };
     } catch { continue; }
   }
   return null;
 }
 
 function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: SocialSource) => void }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const inp: React.CSSProperties = {
     background: VS.bg0, border: `1px solid ${VS.border}`, borderRadius: '6px',
-    padding: '8px 11px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px',
+    padding: '10px 13px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px',
     width: '100%', outline: 'none', boxSizing: 'border-box',
-  };
-  const lbl: React.CSSProperties = {
-    display: 'block', fontSize: '10px', fontFamily: 'monospace', color: VS.text2,
-    textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '5px',
-  };
-
-  const handleUrlChange = (url: string) => {
-    let handle = form.handle;
-    if (form.platform === 'YouTube') {
-      const match = url.match(/youtube\.com\/(@[\w.-]+|channel\/[\w-]+|c\/[\w-]+|user\/[\w-]+)/i);
-      if (match) handle = match[1].startsWith('@') ? match[1] : `@${match[1].split('/').pop()}`;
-    }
-    setForm(f => ({ ...f, url, handle }));
   };
 
   const handleSave = async () => {
     setError('');
-    if (!form.url.trim())    { setError('URL is required.'); return; }
-    if (!form.handle.trim()) { setError('Handle is required.'); return; }
+    if (!url.trim()) { setError('Paste a URL to continue.'); return; }
 
     setLoading(true);
+    const { platform, handle } = detectFromUrl(url.trim());
     let followers = 0;
     let status: Status = 'pending';
 
-    if (form.platform === 'YouTube') {
-      const yt = await fetchYouTubeChannel(form.handle.trim());
-      if (yt) {
-        followers = yt.subscribers;
-        status = 'connected';
-      }
-      // if lookup fails, still save as pending — don't block the user
+    if (platform === 'YouTube') {
+      const yt = await fetchYouTubeChannel(handle);
+      if (yt) { followers = yt.subscribers; status = 'connected'; }
     }
 
     const body = {
-      platform: form.platform,
-      handle: form.handle.trim(),
-      url: form.url.trim(),
-      status,
-      followers,
+      platform, handle, url: url.trim(), status, followers,
       lastSync: status === 'connected' ? new Date().toISOString() : null,
-      notes: form.notes.trim() || null,
+      notes: null,
     };
     const res = await fetch(API, {
       method: 'POST',
@@ -133,80 +130,36 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
       body: JSON.stringify(body),
     });
     if (!res.ok) { setError('Failed to save — please try again.'); setLoading(false); return; }
-    const saved = await res.json();
-    onSave(saved);
+    onSave(await res.json());
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-md rounded-xl overflow-hidden" style={{ background: VS.bg1, border: `1px solid ${VS.border}`, boxShadow: '0 24px 64px rgba(0,0,0,0.8)' }}>
-        {/* Header */}
+      <div className="w-full max-w-sm rounded-xl overflow-hidden" style={{ background: VS.bg1, border: `1px solid ${VS.border}`, boxShadow: '0 24px 64px rgba(0,0,0,0.8)' }}>
         <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: `1px solid ${VS.border}` }}>
-          <span className="text-[13px] font-semibold" style={{ color: VS.text0 }}>Add Social Source</span>
+          <span className="text-[13px] font-semibold" style={{ color: VS.text0 }}>Add Source</span>
           <button onClick={onClose} style={{ color: VS.text2 }}><X className="h-4 w-4" /></button>
         </div>
-
-        {/* Body */}
         <div className="p-5 flex flex-col gap-4">
           <div>
-            <label style={lbl}>// platform</label>
-            <div className="flex flex-wrap gap-2">
-              {PLATFORMS.map(p => {
-                const meta = PLATFORM_META[p];
-                const Icon = meta.icon;
-                const sel = form.platform === p;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setForm(f => ({ ...f, platform: p }))}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px]"
-                    style={{
-                      background: sel ? `${meta.color}22` : VS.bg2,
-                      border: `1px solid ${sel ? meta.color : VS.border}`,
-                      color: sel ? meta.color : VS.text2,
-                      fontWeight: sel ? 600 : 400,
-                    }}
-                  >
-                    <Icon className="h-3.5 w-3.5" />{p}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label style={lbl}>// handle</label>
-            <input style={inp} placeholder="@yourhandle" value={form.handle} onChange={e => setForm(f => ({ ...f, handle: e.target.value }))} />
-          </div>
-
-          <div>
-            <label style={lbl}>// profile url</label>
-            <input style={inp} placeholder="https://..." value={form.url} onChange={e => handleUrlChange(e.target.value)} />
-          </div>
-
-          <div>
-            <label style={lbl}>// notes</label>
-            <textarea
-              style={{ ...inp, resize: 'none', height: 72 }}
-              placeholder="Optional notes..."
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            <p className="text-[11px] mb-2" style={{ color: VS.text2, fontFamily: 'monospace' }}>// paste any social media URL</p>
+            <input
+              style={inp}
+              placeholder="https://youtube.com/@handle"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+              autoFocus
             />
           </div>
-
           {error && (
             <div className="text-[12px] px-3 py-2 rounded" style={{ background: `${VS.red}18`, border: `1px solid ${VS.red}44`, color: VS.red, fontFamily: 'monospace' }}>
               ✗ {error}
             </div>
           )}
-
-          <div className="flex gap-2 justify-end pt-1">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-[13px]"
-              style={{ background: VS.bg2, border: `1px solid ${VS.border}`, color: VS.text2 }}
-            >
+          <div className="flex gap-2 justify-end">
+            <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px]" style={{ background: VS.bg2, border: `1px solid ${VS.border}`, color: VS.text2 }}>
               Cancel
             </button>
             <button
@@ -215,7 +168,7 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
               className="px-4 py-2 rounded-md text-[13px] font-medium"
               style={{ background: loading ? '#005a9e' : VS.accent, color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
             >
-              {loading ? 'Connecting...' : 'Add Source'}
+              {loading ? 'Adding...' : 'Add'}
             </button>
           </div>
         </div>
