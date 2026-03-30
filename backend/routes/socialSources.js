@@ -34,6 +34,17 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /api/social-sources/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const source = await prisma.socialSource.findUnique({ where: { id: req.params.id } });
+    if (!source) return res.status(404).json({ error: 'Not found' });
+    res.json(source);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // PATCH /api/social-sources/:id
 router.patch('/:id', async (req, res) => {
   const { platform, handle, url, status, followers, lastSync, notes } = req.body;

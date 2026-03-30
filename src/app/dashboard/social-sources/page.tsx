@@ -131,14 +131,24 @@ function AddSourceModal({ onClose, onSave }: { onClose: () => void; onSave: (s: 
     });
     if (!res.ok) { setError('Failed to save — please try again.'); setLoading(false); return; }
     const saved = await res.json();
-    onSave(saved);
-    // Trigger scrape in background for TikTok, Instagram, YouTube
     if (['TikTok', 'Instagram', 'YouTube'].includes(platform)) {
-      fetch('/api/social-sources/scrape', {
+      const scrapeRes = await fetch('/api/social-sources/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceId: saved.id, platform, handle, url: url.trim() }),
-      }).catch(() => {});
+      });
+      if (!scrapeRes.ok) {
+        const err = await scrapeRes.json().catch(() => ({}));
+        onSave(saved);
+        setError(`Saved but scrape failed: ${err.error ?? 'unknown error'}`);
+        setLoading(false);
+        return;
+      }
+      // Refetch updated source (status now connected)
+      const updated = await fetch(`${API}/${saved.id}`).then(r => r.json()).catch(() => saved);
+      onSave(updated ?? saved);
+    } else {
+      onSave(saved);
     }
     onClose();
   };
