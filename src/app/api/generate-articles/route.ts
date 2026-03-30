@@ -69,7 +69,7 @@ MONEY & NUMBERS:
 - "per cent" always two words in body — never "%"
 - Foreign currency: always include AUD conversion in parentheses on first mention — e.g. US$33 million ($49 million AUD), DKK 3,000 (approximately $650 AUD), €50 million (approximately $82 million AUD). If exact rate is unavailable, use "approximately". This applies to ALL non-AUD currencies including USD, EUR, GBP, DKK, NZD, JPY, etc.
 - Financial years: FY24, FY25 (no full stops)
-- Share prices include timestamp: "at 11.39am (AEDT)"
+- Share prices include timestamp: "at 11.39am (AEDT)" — the time and timezone are mandatory, never omit them. Use AEDT (UTC+11, daylight saving) or AEST (UTC+10, standard time) depending on season
 - Numbers one to nine spelled out in body; 10+ as numerals
 
 LOCATION:
@@ -106,6 +106,12 @@ Use strong, precise active verbs that convey momentum, consequence, or action.
 - Banned weak verbs: stuck, shows, remains, continues, sees, faces, gets, looks, comes, goes, finds, hits (unless describing a target/record)
 - The verb must describe a specific action or direction — never a general state
 
+ONE STORY PER ARTICLE:
+- Each article covers one company or one event only. Never combine two unrelated company stories into a single article.
+- If the source material contains news about multiple companies, write about the primary company only — the one with the most detail or the strongest news hook.
+- Never append secondary company news under headings like "In a separate development", "Also this week", or any similar device.
+- If multiple separate articles are needed, they will be submitted as separate article requests — do not merge them.
+
 LEDE STATISTIC RULE:
 The first sentence must contain the single most important statistic or fact from the source. Never open with a report citation, publication name, or broad context statement. The number or dollar figure must appear in the first sentence. "A new report by X finds that..." is forbidden as an opening.
 
@@ -135,7 +141,9 @@ WHAT BNA NEVER DOES:
 - Uses "utilise" or "utilising" in any form — always "use" or "using"
 - Uses apostrophes to form plurals (CEO's, PoP's) — always plain plurals (CEOs, PoPs)
 - Mentions a foreign currency without an AUD conversion on first mention
-- Appends "AUD" or "A$" after the closing parenthesis in a currency conversion — the $ sign already implies AUD. Correct: "US$1.2 billion ($1.9 billion)". Incorrect: "US$1.2 billion ($1.9 billion AUD)"`;
+- Appends "AUD" or "A$" after the closing parenthesis in a currency conversion — the $ sign already implies AUD. Correct: "US$1.2 billion ($1.9 billion)". Incorrect: "US$1.2 billion ($1.9 billion AUD)"
+- Omits the time and timezone from a share price note — every share price reference must end with "at [time] (AEDT)" or "at [time] (AEST)". A share price note without a timestamp is incomplete and must not be published
+- Combines two unrelated company stories into one article — one company, one story, one article. Secondary company news is never appended under any heading`;
 
 const TONE_MAP: Record<string, string> = {
   'Authoritative': 'Use a confident, expert tone. Make definitive statements backed by evidence. No hedging or qualifiers.',
@@ -173,7 +181,7 @@ async function generateFromInline(
       + '\nFORMAT: ' + (MOOD_MAP[mood] || MOOD_MAP['News Report'])
       + '\nTARGET LENGTH: approximately ' + wordCount + ' words'
       + (art.topic ? '\nANGLE/FOCUS: ' + art.topic : '')
-      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly\n- Include a headline using a strong active verb — never use weak verbs (stuck, remains, continues, sees, faces)\n- The opening paragraph must lead with the most specific statistic or dollar figure from the source — never a scene-setter\n- Ignore any navigation, sidebar, footer, "Latest News", or "Related Articles" content in the source material\n- Ground the article in facts, names, companies, and data from the main article body only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Output the article only — no appendices, checklists, or extra sections'
+      + '\n\nUsing the source content below, write an ORIGINAL BNA-style business news article.\n\nRules:\n- Always produce an article regardless of source type — adapt BNA style to whatever subject matter is provided. Never refuse.\n- Completely original rewrite — same core facts, entirely new sentences. Do not copy verbatim.\n- Follow the style profile above exactly\n- Include a headline using a strong active verb — never use weak verbs (stuck, remains, continues, sees, faces)\n- The opening paragraph must lead with the most specific statistic or dollar figure from the source — never a scene-setter\n- Ignore any navigation, sidebar, footer, "Latest News", or "Related Articles" content in the source material\n- Ground the article in facts, names, companies, and data from the main article body only\n- Do not invent facts, quotes, or statistics not present in the sources\n- End on a quote, a financial metric, or a contextual fact — never a summary conclusion\n- Never use "underscores", "demonstrates", "proves", or "highlights" in reporter voice\n- Use "said"/"wrote" for all historical, written, or document-sourced quotes — never "says"\n- Convert all non-AUD currencies to AUD in parentheses on first mention\n- Every share price reference must include a timestamp: "at [time] (AEDT)" or "at [time] (AEST)" — never omit it\n- Cover one company only — never combine two unrelated company stories into one article\n- Output the article only — no appendices, checklists, or extra sections'
       + '\n\nSource material:\n' + sourceText;
 
     const message = await client.messages.create({
