@@ -50,7 +50,7 @@ function fmt(n: number) {
   return `${n}`;
 }
 
-const API = 'https://contentsense.up.railway.app/api/social-sources';
+const API = '/api/social-sources';
 
 const EMPTY_FORM = { platform: 'YouTube' as Platform, handle: '', url: '', notes: '' };
 
