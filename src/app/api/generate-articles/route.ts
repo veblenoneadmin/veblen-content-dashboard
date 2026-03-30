@@ -92,8 +92,8 @@ WHAT BNA NEVER DOES:
 - Uses "says" for historical, written, or document-sourced quotes (always "said" or "wrote")
 - Uses the % symbol in body text — always "per cent"
 - Uses passive voice in ledes
-- Writes a summary conclusion paragraph — the article MUST end on a quote, a financial metric, or a contextual fact. Never wrap up with the reporter's interpretation.
-- Uses editorialising verbs like "underscores", "demonstrates", "proves", "highlights", "reveals" in reporter voice — these are forbidden
+- Writes a summary conclusion paragraph — any paragraph containing "represents...", "underscores...", "demonstrates...", "This marks...", "This signals...", or any reporter interpretation of what the story means must be deleted entirely and replaced with a forward-looking quote, a standalone financial metric, or a share price boilerplate line
+- Uses editorialising verbs like "underscores", "demonstrates", "proves", "highlights", "reveals", "represents", "signals", "marks" in reporter voice — these are forbidden
 - Uses exclamation marks in editorial copy
 - Omits ASX ticker on first mention of a listed company
 - Omits city-based descriptor on first mention of a company
@@ -104,6 +104,7 @@ WHAT BNA NEVER DOES:
 - Uses anonymous sources as standard practice
 - Writes paragraphs longer than 4 sentences
 - Mentions a foreign currency without an AUD conversion on first mention
+- Appends "AUD" or "A$" after the closing parenthesis in a currency conversion — the $ sign already implies AUD. Correct: "US$1.2 billion ($1.9 billion)". Incorrect: "US$1.2 billion ($1.9 billion AUD)"
 
 MANDATORY OUTPUT FORMAT:
 After the article body, always append the following three sections exactly as shown:
@@ -121,15 +122,16 @@ Provide 3–5 alternative headlines, each labelled with its pattern type:
 [Leave this section blank for the editor to fill in with follow-up questions]
 
 ## Fact-Check Checklist
-- [ ] Dollar figure matches source
-- [ ] ASX ticker included on first mention (if listed)
-- [ ] City-based descriptor on first mention
-- [ ] All quotes attributed to named individuals from the source
-- [ ] No summary conclusion paragraph
-- [ ] Headline does not start with "The"
-- [ ] Announcement date confirmed as current (within 2–3 days)
-- [ ] Foreign currency converted to AUD on first mention
-- [ ] Attribution verb correct (says = live interview; said/wrote = written/historical source)`;
+After generating the article, auto-tick every item you can verify from the article itself. Only leave items unchecked if they require human verification against the original source document.
+- [ ] Dollar figure matches source — HUMAN CHECK REQUIRED
+- [ ] ASX ticker included on first mention (if listed) — auto-tick ✅ if ticker appears, or mark N/A if company is not ASX-listed
+- [ ] City-based descriptor on first mention — auto-tick ✅ if present in the article
+- [ ] All quotes attributed to named individuals from the source — auto-tick ✅ if all quotes have named attribution
+- [ ] No summary conclusion paragraph — auto-tick ✅ if article ends on quote, metric, or fact
+- [ ] Headline does not start with "The" — auto-tick ✅ if confirmed
+- [ ] Announcement date confirmed as current (within 2–3 days) — HUMAN CHECK REQUIRED
+- [ ] Foreign currency converted to AUD on first mention — auto-tick ✅ if all foreign currencies have AUD conversion, or N/A if no foreign currencies present
+- [ ] Attribution verb correct (says = live interview; said/wrote = written/historical source) — auto-tick ✅ if applied correctly throughout`;
 
 const TONE_MAP: Record<string, string> = {
   'Authoritative': 'Use a confident, expert tone. Make definitive statements backed by evidence. No hedging or qualifiers.',
