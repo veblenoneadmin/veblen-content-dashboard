@@ -411,30 +411,6 @@ export default function CreateArticlePage() {
                 </div>
               )}
 
-              {/* Tone */}
-              <div style={{ marginBottom: '10px' }}>
-                <label style={lbl}>Tone</label>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {['Authoritative', 'Conversational', 'Analytical', 'Punchy'].map(t => (
-                    <button key={t} onClick={() => setTone(t)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${tone === t ? VS.accent : VS.border}`, background: tone === t ? VS.accentGlow : 'transparent', color: tone === t ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: tone === t ? 600 : 400 }}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mood */}
-              <div style={{ marginBottom: '14px' }}>
-                <label style={lbl}>Format</label>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {['News Report', 'Opinion/Analysis', 'Explainer', 'Trend Piece'].map(m => (
-                    <button key={m} onClick={() => setMood(m)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${mood === m ? VS.accent : VS.border}`, background: mood === m ? VS.accentGlow : 'transparent', color: mood === m ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: mood === m ? 600 : 400 }}>
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Mode tabs */}
               <div style={{ display: 'flex', border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '14px' }}>
                 {(['editor', 'categorical'] as const).map((m) => (
@@ -516,14 +492,32 @@ export default function CreateArticlePage() {
                       <span style={{ fontSize: '9px', color: VS.text2, fontWeight: 400 }}>BNA style by default</span>
                     </button>
                     {optOpen && (
-                      <div style={{ padding: '12px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={{ padding: '12px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div>
-                          <label style={lbl}>Word count</label>
-                          <input style={inp} type="number" value={wordCount} onChange={e => setWordCount(e.target.value)} min={200} max={2000} step={50} placeholder="~600" />
+                          <label style={lbl}>Tone</label>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {['Authoritative', 'Conversational', 'Analytical', 'Punchy'].map(t => (
+                              <button key={t} onClick={() => setTone(t)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${tone === t ? VS.accent : VS.border}`, background: tone === t ? VS.accentGlow : 'transparent', color: tone === t ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: tone === t ? 600 : 400 }}>{t}</button>
+                            ))}
+                          </div>
                         </div>
                         <div>
-                          <label style={lbl}>Region</label>
-                          <input style={inp} type="text" placeholder="e.g. Queensland" />
+                          <label style={lbl}>Format</label>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {['News Report', 'Opinion/Analysis', 'Explainer', 'Trend Piece'].map(m => (
+                              <button key={m} onClick={() => setMood(m)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${mood === m ? VS.accent : VS.border}`, background: mood === m ? VS.accentGlow : 'transparent', color: mood === m ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: mood === m ? 600 : 400 }}>{m}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <label style={lbl}>Word count</label>
+                            <input style={inp} type="number" value={wordCount} onChange={e => setWordCount(e.target.value)} min={200} max={2000} step={50} placeholder="~600" />
+                          </div>
+                          <div>
+                            <label style={lbl}>Region</label>
+                            <input style={inp} type="text" placeholder="e.g. Queensland" />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -579,14 +573,32 @@ export default function CreateArticlePage() {
                       <span style={{ fontSize: '9px', color: VS.text2, fontWeight: 400 }}>BNA style by default</span>
                     </button>
                     {catOptOpen && (
-                      <div style={{ padding: '12px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={{ padding: '12px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div>
-                          <label style={lbl}>Word count</label>
-                          <input style={inp} type="number" value={catWordCount} onChange={e => setCatWordCount(e.target.value)} min={200} max={2000} step={50} placeholder="~600" />
+                          <label style={lbl}>Tone</label>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {['Authoritative', 'Conversational', 'Analytical', 'Punchy'].map(t => (
+                              <button key={t} onClick={() => setTone(t)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${tone === t ? VS.accent : VS.border}`, background: tone === t ? VS.accentGlow : 'transparent', color: tone === t ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: tone === t ? 600 : 400 }}>{t}</button>
+                            ))}
+                          </div>
                         </div>
                         <div>
-                          <label style={lbl}>Region</label>
-                          <input style={inp} type="text" value={catRegion} onChange={e => setCatRegion(e.target.value)} placeholder="e.g. Queensland" />
+                          <label style={lbl}>Format</label>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {['News Report', 'Opinion/Analysis', 'Explainer', 'Trend Piece'].map(m => (
+                              <button key={m} onClick={() => setMood(m)} style={{ padding: '4px 10px', borderRadius: '5px', border: `1px solid ${mood === m ? VS.accent : VS.border}`, background: mood === m ? VS.accentGlow : 'transparent', color: mood === m ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: mood === m ? 600 : 400 }}>{m}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <label style={lbl}>Word count</label>
+                            <input style={inp} type="number" value={catWordCount} onChange={e => setCatWordCount(e.target.value)} min={200} max={2000} step={50} placeholder="~600" />
+                          </div>
+                          <div>
+                            <label style={lbl}>Region</label>
+                            <input style={inp} type="text" value={catRegion} onChange={e => setCatRegion(e.target.value)} placeholder="e.g. Queensland" />
+                          </div>
                         </div>
                       </div>
                     )}
