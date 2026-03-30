@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 
 const APIFY = 'https://api.apify.com/v2/acts';
 const TOKEN = process.env.APIFY_API_TOKEN;
@@ -147,7 +147,6 @@ export async function POST(req: NextRequest) {
   if (!sourceId || !platform || !handle || !url) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   }
-  // Run in background — don't await
-  scrapeAndSave(platform, handle, url, sourceId).catch(console.error);
+  after(scrapeAndSave(platform, handle, url, sourceId).catch(console.error));
   return NextResponse.json({ ok: true, message: 'Scraping started' });
 }
