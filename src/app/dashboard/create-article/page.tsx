@@ -60,7 +60,8 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver]     = useState(false);
 
-  const html = mdToHtml(article.articleText);
+  const articleBody = article.articleText.split(/\n---\n## Headline Variants/)[0];
+  const html = mdToHtml(articleBody);
   const tmp  = document.createElement('div');
   tmp.innerHTML = html;
   const h1 = tmp.querySelector('h1');
