@@ -119,7 +119,7 @@ export default function VsCodeHome() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: VS.bg2, border: `1px solid ${VS.border}`, fontSize: '12px', color: VS.text2 }}>
             <Activity size={14} style={{ color: VS.teal }} />
-            Veblen Group
+            ContentSense
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: 'rgba(86,156,214,0.1)', border: 'rgba(86,156,214,0.25) 1px solid', fontSize: '12px', color: VS.blue }}>
             <Circle size={8} style={{ fill: VS.blue, color: VS.blue }} />

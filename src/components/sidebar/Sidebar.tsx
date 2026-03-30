@@ -6,6 +6,7 @@ import {
   House, Newspaper, Hash, Layout, Play, Camera,
   Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, TrendingUp, ClipboardCheck, Tag, ScrollText, Share2,
 } from 'lucide-react';
+import ContentSenseLogo from '@/components/shared/ContentSenseLogo';
 
 const navItems = [
   { group: null,          label: 'Home',           href: '/dashboard/home',           icon: House },
@@ -116,31 +117,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           className="flex h-14 items-center justify-between px-4 shrink-0"
           style={{ borderBottom: `1px solid ${VS.border}` }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #007acc, #4fc1ff)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ color: '#fff', fontWeight: 700, fontSize: '13px' }}>V</span>
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '13px', color: VS.text0, lineHeight: '1.2' }}>
-                Veblen Group
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: VS.accent }} />
-                <span style={{ fontSize: '10px', color: VS.text2 }}>355.9K followers</span>
-              </div>
-            </div>
-          </div>
+          <ContentSenseLogo width={168} />
           <button
             className="md:hidden flex items-center justify-center h-7 w-7 rounded-lg"
             style={{ color: VS.text2 }}

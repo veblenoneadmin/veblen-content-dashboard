@@ -3,8 +3,8 @@ import "./globals.css";
 import { DashboardProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
-  title: "Veblen Group — Content Dashboard",
-  description: "Content Management Dashboard for Veblen Group digital marketing agency",
+  title: "ContentSense — AI Content Platform",
+  description: "AI Content Platform by ContentSense",
 };
 
 export default function RootLayout({

@@ -79,7 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifications] = useState<Notif[]>([]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  const pageTitle = pageTitles[pathname] ?? 'Veblen Dashboard';
+  const pageTitle = pageTitles[pathname] ?? 'ContentSense';
 
   return (
     <div style={{ minHeight: '100vh', background: VS.bg0 }}>

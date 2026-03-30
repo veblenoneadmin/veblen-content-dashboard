@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { login } from '@/lib/auth';
+import ContentSenseLogo from '@/components/shared/ContentSenseLogo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function LoginPage() {
             <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#28c840' }} />
           </div>
           <span className="text-xs" style={{ color: '#858585', fontFamily: 'monospace' }}>
-            Veblen Group — sign-in.ts
+            ContentSense — sign-in.ts
           </span>
           <div className="w-12" />
         </div>
@@ -100,14 +101,7 @@ export default function LoginPage() {
 
             {/* Logo + heading */}
             <div className="flex flex-col items-center gap-2 mb-2">
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 700, color: '#f0f0f0', letterSpacing: '-0.5px' }}>
-                  Veblen Group
-                </div>
-                <div style={{ fontSize: 11, color: '#007acc', fontFamily: 'monospace', marginTop: 2, letterSpacing: '0.12em' }}>
-                  CONTENT DASHBOARD
-                </div>
-              </div>
+              <ContentSenseLogo width={260} />
               <div className="text-sm font-medium" style={{ color: '#858585', marginTop: 4 }}>Welcome back</div>
             </div>
 
@@ -221,7 +215,7 @@ export default function LoginPage() {
           style={{ backgroundColor: '#007acc', color: '#ffffff', height: 22, borderRadius: '0 0 8px 8px', fontFamily: 'monospace' }}
         >
           <span>⎇ main</span>
-          <span>Veblen Group v1.0</span>
+          <span>ContentSense v1.0</span>
         </div>
 
       </div>
