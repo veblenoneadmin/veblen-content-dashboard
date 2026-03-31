@@ -60,12 +60,9 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
 
   const articleBody = article.articleText.split(/\n+#{1,3}\s*Headline Variants/)[0];
   const html = mdToHtml(articleBody);
-  const tmp  = document.createElement('div');
-  tmp.innerHTML = html;
-  const h1 = tmp.querySelector('h1');
-  const headline = h1 ? h1.innerHTML : '';
-  if (h1) h1.remove();
-  const bodyHtml = tmp.innerHTML;
+  const h1Match = html.match(/<h1>([\s\S]*?)<\/h1>/);
+  const headline = h1Match ? h1Match[1] : '';
+  const bodyHtml = h1Match ? html.replace(h1Match[0], '') : html;
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const handleFile = (file: File) => {
