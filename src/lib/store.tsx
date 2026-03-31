@@ -5,6 +5,7 @@ import { Post, Competitor, NewsItem, NewsSourceConfig } from './types';
 import { samplePosts, sampleNews } from './data';
 
 type Theme = 'veblen' | 'vscode';
+export type UserRole = 'admin' | 'editor' | 'content_writer';
 
 interface DashboardContextType {
   posts: Post[];
@@ -13,6 +14,8 @@ interface DashboardContextType {
   newsSourceConfigs: NewsSourceConfig[];
   newsSources: string[]; // derived — names only, for tab filtering
   theme: Theme;
+  role: UserRole;
+  setRole: (role: UserRole) => void;
   toggleTheme: () => void;
   addPost: (post: Omit<Post, 'id' | 'createdAt'>) => void;
   updatePost: (id: string, updates: Partial<Post>) => void;
@@ -31,6 +34,17 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [newsItems] = useState<NewsItem[]>(sampleNews);
   const [newsSourceConfigs, setNewsSourceConfigs] = useState<NewsSourceConfig[]>([]);
   const [theme, setTheme] = useState<Theme>('vscode');
+  const [role, setRoleState] = useState<UserRole>('admin');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboard_role') as UserRole | null;
+    if (saved && ['admin', 'editor', 'content_writer'].includes(saved)) setRoleState(saved);
+  }, []);
+
+  const setRole = (r: UserRole) => {
+    setRoleState(r);
+    localStorage.setItem('dashboard_role', r);
+  };
 
   // Load news sources from DB on mount
   useEffect(() => {
@@ -120,7 +134,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   return (
     <DashboardContext.Provider value={{
-      posts, competitors, newsItems, newsSourceConfigs, newsSources, theme,
+      posts, competitors, newsItems, newsSourceConfigs, newsSources, theme, role, setRole,
       toggleTheme, addPost, updatePost, addNewsSourceConfig, removeNewsSource,
       addCompetitor, updateCompetitor, removeCompetitor,
     }}>
