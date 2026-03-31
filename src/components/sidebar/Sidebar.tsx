@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   // Group items: ungrouped first, then by group
   const groups: { group: string | null; items: NavItem[] }[] = [];
-  let currentGroup: string | null = null;
+  let currentGroup: string | null | undefined = undefined;
   for (const item of items) {
     const g = item.group ?? null;
     if (g !== currentGroup) {
