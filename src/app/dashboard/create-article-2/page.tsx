@@ -47,7 +47,6 @@ const LOADING_MSGS = [
 type SavedSource   = { id: string; label: string; category: string; url: string };
 type FileSource    = { name: string; content: string; fileType: 'text' | 'pdf' };
 type ArticleInput  = { topic: string; sources: string[]; files: FileSource[] };
-type CategoryInput = { topic: string; sources: string[]; files: FileSource[] };
 type ArticleResult = { index: number; topic: string; articleText: string };
 
 // ── BNA Preview ───────────────────────────────────────────
@@ -228,11 +227,7 @@ export default function CreateArticle2Page() {
   const [tone, setTone]             = useState('Authoritative');
   const [mood, setMood]             = useState('News Report');
   const [articles, setArticles]     = useState<ArticleInput[]>([{ topic: '', sources: [''], files: [] }]);
-  const [categories, setCategories] = useState<CategoryInput[]>([
-    { topic: '', sources: [''], files: [] },
-    { topic: '', sources: [''], files: [] },
-    { topic: '', sources: [''], files: [] },
-  ]);
+  const [categories, setCategories] = useState(['', '', '']);
   const [wordCount, setWordCount]   = useState('');
   const [catWordCount, setCatWordCount] = useState('');
   const [catRegion, setCatRegion]   = useState('');
@@ -278,15 +273,6 @@ export default function CreateArticle2Page() {
 
   const deleteSavedSource = (id: string) => persistSources(savedSources.filter(s => s.id !== id));
 
-  const addSavedSourceToArticle = (artIdx: number, url: string) => {
-    setArticles(a => a.map((art, j) => {
-      if (j !== artIdx) return art;
-      const emptyIdx = art.sources.findIndex(s => !s.trim());
-      if (emptyIdx >= 0) { const u = [...art.sources]; u[emptyIdx] = url; return { ...art, sources: u }; }
-      return { ...art, sources: [...art.sources, url] };
-    }));
-  };
-
   // ── Loading ticker ──────────────────────────────────────
   const startLoading = useCallback(() => {
     setLoading(true); setLoadingMsg(0);
@@ -311,16 +297,10 @@ export default function CreateArticle2Page() {
   const updateArtSource = (i: number, si: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.map((s, k) => k === si ? v : s) } : art));
   const removeArtFile   = (i: number, fi: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, files: art.files.filter((_, k) => k !== fi) } : art));
 
-  // ── Category helpers ────────────────────────────────────
-  const updateCatTopic  = (i: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, topic: v } : cat));
-  const addCatSource    = (i: number) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, sources: [...cat.sources, ''] } : cat));
-  const removeCatSource = (i: number, si: number) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, sources: cat.sources.filter((_, k) => k !== si) } : cat));
-  const updateCatSource = (i: number, si: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, sources: cat.sources.map((s, k) => k === si ? v : s) } : cat));
-  const removeCatFile   = (i: number, fi: number) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, files: cat.files.filter((_, k) => k !== fi) } : cat));
+  const updateCategory  = (i: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? v : cat));
 
   // ── File upload handler ─────────────────────────────────
   const artFileRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const catFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const readFile = (file: File, onDone: (fs: FileSource) => void) => {
     const isPdf  = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
@@ -351,12 +331,6 @@ export default function CreateArticle2Page() {
     e.target.value = '';
   };
 
-  const handleCatFileUpload = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    readFile(file, fs => setCategories(c => c.map((cat, j) => j === i ? { ...cat, files: [...cat.files, fs] } : cat)));
-    e.target.value = '';
-  };
-
   // ── Generate ────────────────────────────────────────────
   const handleGenerate = async () => {
     setError('');
@@ -364,7 +338,7 @@ export default function CreateArticle2Page() {
       const hasSource = articles.some(a => a.sources.some(s => s.trim()) || a.files.length > 0);
       if (!hasSource) { setError('Please provide at least one source URL or uploaded file.'); return; }
     } else {
-      if (!categories.some(c => c.topic.trim())) { setError('Please provide at least one topic.'); return; }
+      if (!categories.some(c => c.trim())) { setError('Please provide at least one topic.'); return; }
     }
 
     startLoading();
@@ -378,20 +352,12 @@ export default function CreateArticle2Page() {
         payload = { articles: arts, tone, mood, ...(wordCount ? { wordCount: parseInt(wordCount) } : {}) };
       } else {
         const wl = whitelist.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-        const cats = categories
-          .filter(c => c.topic.trim())
-          .map(c => {
-            const hasSources = c.sources.some(s => s.trim()) || c.files.length > 0;
-            return {
-              sources: c.sources.filter(s => s.trim()),
-              files: c.files,
-              topic: c.topic,
-              categorical: !hasSources,
-              ...(catRegion ? { region: catRegion } : {}),
-              ...(wl.length ? { whitelist: wl } : {}),
-            };
-          });
-        payload = { articles: cats, tone, mood, ...(catWordCount ? { wordCount: parseInt(catWordCount) } : {}), ...(catRegion ? { region: catRegion } : {}) };
+        const cats = categories.filter(c => c.trim()).map(c => ({
+          sources: [], files: [], topic: c, categorical: true,
+          ...(catRegion ? { region: catRegion } : {}),
+          ...(wl.length ? { whitelist: wl } : {}),
+        }));
+        payload = { articles: cats, categorical: true, tone, mood, ...(catWordCount ? { wordCount: parseInt(catWordCount) } : {}), ...(catRegion ? { region: catRegion } : {}) };
       }
 
       const res = await fetch('/api/generate-articles-4', {
@@ -463,82 +429,6 @@ export default function CreateArticle2Page() {
               {/* ── Source URLs mode ── */}
               {mode === 'editor' && (
                 <div>
-                  {/* Saved Sources accordion */}
-                  <div style={{ border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '12px' }}>
-                    <button onClick={() => setSlOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: VS.bg1, border: 'none', color: slOpen ? VS.accent : VS.text2, cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <ChevronRight size={11} style={{ transform: slOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                        <Bookmark size={10} /> Saved Sources
-                      </span>
-                      <span style={{ fontSize: '9px', color: savedSources.length ? VS.accent : VS.text2, fontWeight: 400 }}>
-                        {savedSources.length ? `${savedSources.length} saved` : 'None saved'}
-                      </span>
-                    </button>
-                    {slOpen && (
-                      <div style={{ padding: '10px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {savedSources.length === 0 && !addingNew && (
-                          <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text2, textAlign: 'center', padding: '10px 0' }}>No saved sources yet.</div>
-                        )}
-                        {(savedCategories.length > 0 ? savedCategories : ['']).map(cat => {
-                          const group = savedSources.filter(s => s.category === cat);
-                          if (group.length === 0) return null;
-                          return (
-                            <div key={cat || '__none__'}>
-                              {cat && <div style={{ fontFamily: 'monospace', fontSize: '8px', color: VS.accent, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', marginTop: '2px' }}>{cat}</div>}
-                              {group.map(src => (
-                                <div key={src.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: VS.bg3, borderRadius: '5px', marginBottom: '3px' }}>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.label}</div>
-                                    <div style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.url}</div>
-                                  </div>
-                                  {articles.length === 1 ? (
-                                    <button onClick={() => addSavedSourceToArticle(0, src.url)} style={{ padding: '3px 8px', borderRadius: '4px', border: `1px solid ${VS.accent}`, background: VS.accentGlow, color: VS.accent, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer', flexShrink: 0 }}>+ Add</button>
-                                  ) : (
-                                    <div style={{ display: 'flex', gap: '3px', flexShrink: 0 }}>
-                                      {articles.map((_, ai) => (
-                                        <button key={ai} onClick={() => addSavedSourceToArticle(ai, src.url)} style={{ padding: '3px 7px', borderRadius: '4px', border: `1px solid ${VS.accent}`, background: VS.accentGlow, color: VS.accent, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer' }}>+A{ai + 1}</button>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <button onClick={() => deleteSavedSource(src.id)} style={{ width: '22px', height: '22px', borderRadius: '4px', border: `1px solid rgba(244,71,71,0.25)`, background: 'transparent', color: VS.error, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <Trash2 size={10} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })}
-                        {addingNew ? (
-                          <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '7px', marginTop: '4px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                              <div>
-                                <label style={lbl}>Label</label>
-                                <input style={inp} value={newSrc.label} onChange={e => setNewSrc(v => ({ ...v, label: e.target.value }))} placeholder="e.g. AFR" />
-                              </div>
-                              <div>
-                                <label style={lbl}>Category</label>
-                                <input style={inp} value={newSrc.category} onChange={e => setNewSrc(v => ({ ...v, category: e.target.value }))} placeholder="e.g. Finance" list="cat-suggestions" />
-                                <datalist id="cat-suggestions">{savedCategories.map(c => <option key={c} value={c} />)}</datalist>
-                              </div>
-                            </div>
-                            <div>
-                              <label style={lbl}>URL</label>
-                              <input style={inp} type="url" value={newSrc.url} onChange={e => setNewSrc(v => ({ ...v, url: e.target.value }))} placeholder="https://…" />
-                            </div>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button onClick={saveNewSource} style={{ flex: 1, padding: '6px', background: VS.accent, color: '#fff', border: 'none', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>Save</button>
-                              <button onClick={() => { setAddingNew(false); setNewSrc({ label: '', category: '', url: '' }); }} style={{ padding: '6px 10px', background: 'transparent', color: VS.text2, border: `1px solid ${VS.border}`, borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button onClick={() => setAddingNew(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', padding: '6px', border: `1px dashed ${VS.border}`, borderRadius: '5px', background: 'transparent', color: VS.text2, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer', marginTop: '2px' }}>
-                            <Plus size={10} /> Add new source
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Articles */}
                   <div style={{ fontSize: '11px', fontWeight: 600, color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'monospace', marginBottom: '12px' }}>Articles</div>
                   {articles.map((art, i) => (
@@ -561,7 +451,6 @@ export default function CreateArticle2Page() {
                         onRemoveFile={fi => removeArtFile(i, fi)}
                         onFileUpload={e => handleArtFileUpload(i, e)}
                       />
-                      {/* hidden file input */}
                       <input ref={el => { artFileRefs.current[i] = el; }} type="file" accept=".txt,.md,.csv,.pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => handleArtFileUpload(i, e)} />
                     </div>
                   ))}
@@ -621,29 +510,83 @@ export default function CreateArticle2Page() {
               {/* ── By Topic mode ── */}
               {mode === 'categorical' && (
                 <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'monospace', marginBottom: '6px' }}>Topics</div>
-                  <p style={{ fontSize: '12px', color: VS.text2, marginBottom: '10px' }}>Up to 3 topics. Optionally add source URLs or files per topic.</p>
-
-                  {categories.map((cat, i) => (
-                    <div key={i} style={{ border: `1px solid ${VS.border}`, borderRadius: '8px', padding: '12px', marginBottom: '10px', background: VS.bg2 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.accent, background: VS.accentGlow, padding: '2px 8px', borderRadius: '4px', fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
-                        <input style={{ ...inp, flex: 1 }} value={cat.topic} onChange={e => updateCatTopic(i, e.target.value)} placeholder={['e.g. Brisbane fintech raises Q1 2025', 'e.g. QLD construction M&A activity', 'e.g. ASX health tech expanding to US'][i]} />
+                  {/* Saved Sources accordion */}
+                  <div style={{ border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '12px' }}>
+                    <button onClick={() => setSlOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: VS.bg1, border: 'none', color: slOpen ? VS.accent : VS.text2, cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <ChevronRight size={11} style={{ transform: slOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                        <Bookmark size={10} /> Saved Sources
+                      </span>
+                      <span style={{ fontSize: '9px', color: savedSources.length ? VS.accent : VS.text2, fontWeight: 400 }}>
+                        {savedSources.length ? `${savedSources.length} saved` : 'None saved'}
+                      </span>
+                    </button>
+                    {slOpen && (
+                      <div style={{ padding: '10px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {savedSources.length === 0 && !addingNew && (
+                          <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text2, textAlign: 'center', padding: '10px 0' }}>No saved sources yet.</div>
+                        )}
+                        {(savedCategories.length > 0 ? savedCategories : ['']).map(cat => {
+                          const group = savedSources.filter(s => s.category === cat);
+                          if (group.length === 0) return null;
+                          return (
+                            <div key={cat || '__none__'}>
+                              {cat && <div style={{ fontFamily: 'monospace', fontSize: '8px', color: VS.accent, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', marginTop: '2px' }}>{cat}</div>}
+                              {group.map(src => (
+                                <div key={src.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: VS.bg3, borderRadius: '5px', marginBottom: '3px' }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.label}</div>
+                                    <div style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.url}</div>
+                                  </div>
+                                  <button onClick={() => deleteSavedSource(src.id)} style={{ width: '22px', height: '22px', borderRadius: '4px', border: `1px solid rgba(244,71,71,0.25)`, background: 'transparent', color: VS.error, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Trash2 size={10} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                        {addingNew ? (
+                          <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '7px', marginTop: '4px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                              <div>
+                                <label style={lbl}>Label</label>
+                                <input style={inp} value={newSrc.label} onChange={e => setNewSrc(v => ({ ...v, label: e.target.value }))} placeholder="e.g. AFR" />
+                              </div>
+                              <div>
+                                <label style={lbl}>Category</label>
+                                <input style={inp} value={newSrc.category} onChange={e => setNewSrc(v => ({ ...v, category: e.target.value }))} placeholder="e.g. Finance" list="cat-suggestions" />
+                                <datalist id="cat-suggestions">{savedCategories.map(c => <option key={c} value={c} />)}</datalist>
+                              </div>
+                            </div>
+                            <div>
+                              <label style={lbl}>URL</label>
+                              <input style={inp} type="url" value={newSrc.url} onChange={e => setNewSrc(v => ({ ...v, url: e.target.value }))} placeholder="https://…" />
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button onClick={saveNewSource} style={{ flex: 1, padding: '6px', background: VS.accent, color: '#fff', border: 'none', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                              <button onClick={() => { setAddingNew(false); setNewSrc({ label: '', category: '', url: '' }); }} style={{ padding: '6px 10px', background: 'transparent', color: VS.text2, border: `1px solid ${VS.border}`, borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => setAddingNew(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', padding: '6px', border: `1px dashed ${VS.border}`, borderRadius: '5px', background: 'transparent', color: VS.text2, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer', marginTop: '2px' }}>
+                            <Plus size={10} /> Add new source
+                          </button>
+                        )}
                       </div>
-                      <SourceBlock
-                        sources={cat.sources}
-                        files={cat.files}
-                        fileInputRef={{ current: catFileRefs.current[i] }}
-                        onAddSource={() => addCatSource(i)}
-                        onRemoveSource={si => removeCatSource(i, si)}
-                        onUpdateSource={(si, v) => updateCatSource(i, si, v)}
-                        onRemoveFile={fi => removeCatFile(i, fi)}
-                        onFileUpload={e => handleCatFileUpload(i, e)}
-                      />
-                      {/* hidden file input */}
-                      <input ref={el => { catFileRefs.current[i] = el; }} type="file" accept=".txt,.md,.csv,.pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => handleCatFileUpload(i, e)} />
-                    </div>
-                  ))}
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'monospace', marginBottom: '6px' }}>Topics</div>
+                  <p style={{ fontSize: '12px', color: VS.text2, marginBottom: '10px' }}>Up to 3 topics — BNA generates one article each.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '10px' }}>
+                    {categories.map((cat, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.accent, background: VS.accentGlow, padding: '2px 8px', borderRadius: '4px', fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
+                        <input style={{ ...inp, flex: 1 }} value={cat} onChange={e => updateCategory(i, e.target.value)} placeholder={['e.g. Brisbane fintech raises Q1 2025', 'e.g. QLD construction M&A activity', 'e.g. ASX health tech expanding to US'][i]} />
+                      </div>
+                    ))}
+                  </div>
 
                   {/* Whitelist accordion */}
                   <div style={{ border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '8px' }}>
