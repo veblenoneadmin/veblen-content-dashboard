@@ -9,27 +9,7 @@ import {
 import ContentSenseLogo from '@/components/shared/ContentSenseLogo';
 
 const navItems = [
-  { group: null,          label: 'Home',           href: '/dashboard/home',           icon: House },
-  { group: 'RESEARCH',    label: 'News',            href: '/dashboard/news',           icon: Newspaper },
-  { group: 'RESEARCH',    label: 'Topics',          href: '/dashboard/topics',         icon: Hash },
-  { group: 'RESEARCH',    label: 'Formats',         href: '/dashboard/formats',        icon: Layout },
-  { group: 'RESEARCH',    label: 'Archive',         href: '/dashboard/archive',        icon: Archive },
-  { group: 'CREATE',      label: 'YouTube',         href: '/dashboard/youtube',        icon: Play },
-  { group: 'CREATE',      label: 'Instagram',       href: '/dashboard/instagram',      icon: Camera },
-  { group: 'CREATE',      label: 'LinkedIn',        href: '/dashboard/linkedin',       icon: Briefcase },
-  { group: 'CREATE',      label: 'Create Article',  href: '/dashboard/create-article',  icon: FileText },
-  { group: 'CREATE',      label: 'InsightWire',       href: '/dashboard/create-article-2', icon: FileText },
-  { group: 'CREATE',      label: 'Social Sources',  href: '/dashboard/social-sources',  icon: Share2 },
-  { group: 'INSIGHTS',    label: 'Analytics',       href: '/dashboard/analytics',      icon: BarChart2 },
-  { group: 'INSIGHTS',    label: 'Calendar',        href: '/dashboard/calendar',       icon: CalendarDays },
-  { group: 'INSIGHTS',    label: 'Competitors',     href: '/dashboard/competitors',    icon: Users },
-  { group: 'AUTOMATION',  label: 'Creator Sources',   href: '/dashboard/pipeline',            icon: Zap },
-  { group: 'AUTOMATION',  label: 'Creator Analytics', href: '/dashboard/creator-analytics',   icon: TrendingUp },
-  { group: 'AUTOMATION',  label: 'Approval Queue',    href: '/dashboard/approval-queue',       icon: ClipboardCheck },
-  { group: 'AUTOMATION',  label: 'Framework Tags',    href: '/dashboard/framework-tags',       icon: Tag },
-  { group: 'AUTOMATION',  label: 'Weekly Reports',    href: '/dashboard/weekly-reports',       icon: ScrollText },
-  { group: 'AUTOMATION',  label: 'Workflows',         href: '/dashboard/workflows',            icon: Workflow },
-  { group: 'AUTOMATION',  label: 'Transcribe',        href: '/dashboard/transcribe',           icon: Mic },
+  { group: null, label: 'InsightWire', href: '/dashboard/create-article-2', icon: FileText },
 ];
 
 const groups = ['RESEARCH', 'CREATE', 'INSIGHTS', 'AUTOMATION'];
