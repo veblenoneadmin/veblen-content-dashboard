@@ -3,8 +3,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
 
-const N8N_WEBHOOK = 'https://primary-s0q-production.up.railway.app/webhook/generate-articles';
-
 // ── VS Dark palette ───────────────────────────────────────
 const VS = {
   bg0: '#1e1e1e', bg1: '#252526', bg2: '#2d2d2d', bg3: '#333333',
@@ -35,9 +33,9 @@ function mdToHtml(text: string): string {
 }
 
 const LOADING_MSGS = [
-  ['Connecting to engine…', 'Establishing n8n pipeline'],
+  ['Connecting to engine…', 'Calling Anthropic directly'],
   ['Fetching source URLs…', 'Reaching out to sources'],
-  ['Scraping article data…', 'Extracting text via Jina AI'],
+  ['Scraping article data…', 'Extracting text via Jina AI reader'],
   ['Preparing prompt…', 'Applying BNA style guide'],
   ['AI is writing…', 'Generating original BNA-style content'],
   ['Refining structure…', 'Polishing lede and flow'],
@@ -278,17 +276,17 @@ export default function CreateArticle2Page() {
         };
       }
 
-      const res = await fetch(N8N_WEBHOOK, {
+      const res = await fetch('/api/generate-articles-4', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) { setError(`n8n returned HTTP ${res.status}`); return; }
+      if (!res.ok) { setError(`API returned HTTP ${res.status}`); return; }
 
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
-      if (!data.articles?.length) { setError('No articles returned from n8n.'); return; }
+      if (!data.articles?.length) { setError('No articles returned.'); return; }
 
       setResults(data.articles);
       setCurrentIdx(data.articles[0].index ?? 0);
