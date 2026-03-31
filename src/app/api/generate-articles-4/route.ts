@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const body = await req.json();
-    const articles: { sources: string[]; topic: string; categorical?: boolean }[] = body.articles || [];
+    const articles: { sources: string[]; topic: string; categorical?: boolean; fileContents?: string[] }[] = body.articles || [];
 
     const results = [];
 
@@ -42,8 +42,13 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const sourceBlock = scrapedSources.length
-        ? `\n\nSOURCE MATERIAL:\n${scrapedSources.join('\n\n---\n\n')}`
+      const fileBlocks = (art.fileContents || []).map((text, fi) =>
+        `=== FILE SOURCE ${fi + 1} ===\n${text.split(/\s+/).slice(0, 3500).join(' ')}`
+      );
+
+      const allSources = [...scrapedSources, ...fileBlocks];
+      const sourceBlock = allSources.length
+        ? `\n\nSOURCE MATERIAL:\n${allSources.join('\n\n---\n\n')}`
         : '';
 
       const topicBlock = art.topic ? `\nANGLE/FOCUS: ${art.topic}` : '';
