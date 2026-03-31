@@ -282,9 +282,8 @@ export default function CreateArticle2Page() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) { setError(`API returned HTTP ${res.status}`); return; }
-
       const data = await res.json();
+      if (!res.ok) { setError(data.error || `API returned HTTP ${res.status}`); return; }
       if (data.error) { setError(data.error); return; }
       if (!data.articles?.length) { setError('No articles returned.'); return; }
 
