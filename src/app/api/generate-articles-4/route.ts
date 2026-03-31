@@ -51,19 +51,17 @@ export async function POST(req: NextRequest) {
         ? `\n\nSOURCE MATERIAL:\n${allSources.join('\n\n---\n\n')}`
         : '';
 
-      const topicBlock = art.topic ? `\nANGLE/FOCUS: ${art.topic}` : '';
+      const topicBlock = art.topic ? `ANGLE/FOCUS: ${art.topic}\n\n` : '';
 
-      const prompt = BNA_STYLE_PROFILE
-        + topicBlock
-        + (art.categorical
-          ? '\n\nWrite an original BNA-style article on the topic above. No source material provided — draw on your knowledge of the subject.'
-          : '\n\nUsing the source material below, write an original BNA-style business news article. Follow the style guide above exactly. Output the article only.')
-        + sourceBlock;
+      const userPrompt = art.categorical
+        ? `${topicBlock}Write an original BNA-style article on the topic above. No source material provided — draw on your knowledge of the subject. Output the article only.`
+        : `${topicBlock}Using the source material below, write an original BNA-style business news article. Output the article only.${sourceBlock}`;
 
       const message = await client.messages.create({
         model: 'claude-opus-4-6',
         max_tokens: 3000,
-        messages: [{ role: 'user', content: prompt }],
+        system: BNA_STYLE_PROFILE,
+        messages: [{ role: 'user', content: userPrompt }],
       });
 
       const articleText = message.content[0]?.type === 'text' ? message.content[0].text : '';
