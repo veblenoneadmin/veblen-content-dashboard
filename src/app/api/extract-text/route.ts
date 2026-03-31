@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
     if (ext === 'txt') {
       text = buffer.toString('utf-8');
     } else if (ext === 'pdf') {
-      const pdfParse = (await import('pdf-parse')).default;
+      const pdfMod = await import('pdf-parse');
+      const pdfParse = (pdfMod as unknown as { default: (buf: Buffer) => Promise<{ text: string }> }).default ?? pdfMod;
       const result = await pdfParse(buffer);
       text = result.text;
     } else if (ext === 'doc' || ext === 'docx') {
