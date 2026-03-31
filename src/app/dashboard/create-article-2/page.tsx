@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2, Upload, Bookmark, Trash2 } from 'lucide-react';
 
 // ── VS Dark palette ───────────────────────────────────────
 const VS = {
@@ -44,7 +44,9 @@ const LOADING_MSGS = [
   ['Almost there…', 'Applying final formatting'],
 ];
 
-type ArticleInput  = { topic: string; sources: string[] };
+type SavedSource  = { id: string; label: string; category: string; url: string };
+type FileSource   = { name: string; content: string };
+type ArticleInput = { topic: string; sources: string[]; files: FileSource[] };
 type ArticleResult = { index: number; topic: string; articleText: string };
 
 // ── BNA Preview ───────────────────────────────────────────
@@ -194,7 +196,7 @@ export default function CreateArticle2Page() {
   const [mode, setMode]             = useState<'editor' | 'categorical'>('editor');
   const [tone, setTone]             = useState('Authoritative');
   const [mood, setMood]             = useState('News Report');
-  const [articles, setArticles]     = useState<ArticleInput[]>([{ topic: '', sources: [''] }]);
+  const [articles, setArticles]     = useState<ArticleInput[]>([{ topic: '', sources: [''], files: [] }]);
   const [categories, setCategories] = useState(['', '', '']);
   const [wordCount, setWordCount]   = useState('');
   const [catWordCount, setCatWordCount] = useState('');
@@ -214,6 +216,49 @@ export default function CreateArticle2Page() {
   const [fullscreen, setFullscreen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Saved Sources ────────────────────────────────────────
+  const [savedSources, setSavedSources] = useState<SavedSource[]>([]);
+  const [slOpen, setSlOpen]             = useState(false);
+  const [addingNew, setAddingNew]       = useState(false);
+  const [newSrc, setNewSrc]             = useState({ label: '', category: '', url: '' });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('bna_saved_sources');
+      if (stored) setSavedSources(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const persistSources = (updated: SavedSource[]) => {
+    setSavedSources(updated);
+    localStorage.setItem('bna_saved_sources', JSON.stringify(updated));
+  };
+
+  const saveNewSource = () => {
+    if (!newSrc.label.trim() || !newSrc.url.trim()) return;
+    persistSources([...savedSources, { id: Date.now().toString(), ...newSrc }]);
+    setNewSrc({ label: '', category: '', url: '' });
+    setAddingNew(false);
+  };
+
+  const deleteSavedSource = (id: string) => {
+    persistSources(savedSources.filter(s => s.id !== id));
+  };
+
+  const addSavedSourceToArticle = (artIdx: number, url: string) => {
+    setArticles(a => a.map((art, j) => {
+      if (j !== artIdx) return art;
+      // replace first empty URL slot, or append
+      const emptyIdx = art.sources.findIndex(s => !s.trim());
+      if (emptyIdx >= 0) {
+        const updated = [...art.sources];
+        updated[emptyIdx] = url;
+        return { ...art, sources: updated };
+      }
+      return { ...art, sources: [...art.sources, url] };
+    }));
+  };
+
   // ── Loading ticker ──────────────────────────────────────
   const startLoading = useCallback(() => {
     setLoading(true); setLoadingMsg(0);
@@ -230,21 +275,38 @@ export default function CreateArticle2Page() {
   }, []);
 
   // ── Article input helpers ───────────────────────────────
-  const addArticle      = () => setArticles(a => [...a, { topic: '', sources: [''] }]);
+  const addArticle      = () => setArticles(a => [...a, { topic: '', sources: [''], files: [] }]);
   const removeArticle   = (i: number) => setArticles(a => a.filter((_, j) => j !== i));
   const updateTopic     = (i: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, topic: v } : art));
   const addSource       = (i: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: [...art.sources, ''] } : art));
   const removeSource    = (i: number, si: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.filter((_, k) => k !== si) } : art));
   const updateSource    = (i: number, si: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.map((s, k) => k === si ? v : s) } : art));
   const updateCategory  = (i: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? v : cat));
+  const removeFile      = (i: number, fi: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, files: art.files.filter((_, k) => k !== fi) } : art));
 
-  // ── Generate — posts directly to n8n ───────────────────
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleFileUpload = (artIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const raw = ev.target?.result as string;
+      // Trim to 3500 words client-side to match Jina scrape limit
+      const content = raw.split(/\s+/).slice(0, 3500).join(' ');
+      setArticles(a => a.map((art, j) => j === artIdx ? { ...art, files: [...art.files, { name: file.name, content }] } : art));
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // ── Generate ────────────────────────────────────────────
   const handleGenerate = async () => {
     setError('');
 
     if (mode === 'editor') {
-      const hasSource = articles.some(a => a.sources.some(s => s.trim()));
-      if (!hasSource) { setError('Please provide at least one source URL.'); return; }
+      const hasSource = articles.some(a => a.sources.some(s => s.trim()) || a.files.length > 0);
+      if (!hasSource) { setError('Please provide at least one source URL or uploaded file.'); return; }
     } else {
       if (!categories.some(c => c.trim())) { setError('Please provide at least one topic.'); return; }
     }
@@ -255,8 +317,12 @@ export default function CreateArticle2Page() {
 
       if (mode === 'editor') {
         const arts = articles
-          .map(a => ({ sources: a.sources.filter(s => s.trim()), topic: a.topic.trim() }))
-          .filter(a => a.sources.length > 0);
+          .map(a => ({
+            sources: a.sources.filter(s => s.trim()),
+            files: a.files,
+            topic: a.topic.trim(),
+          }))
+          .filter(a => a.sources.length > 0 || a.files.length > 0);
         payload = {
           articles: arts,
           tone, mood,
@@ -265,7 +331,7 @@ export default function CreateArticle2Page() {
       } else {
         const wl = whitelist.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
         const cats = categories.filter(c => c.trim()).map(c => ({
-          sources: [], topic: c, categorical: true,
+          sources: [], files: [], topic: c, categorical: true,
           ...(catRegion ? { region: catRegion } : {}),
           ...(wl.length ? { whitelist: wl } : {}),
         }));
@@ -317,6 +383,9 @@ export default function CreateArticle2Page() {
   const inp: React.CSSProperties = { background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '8px 11px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontFamily: 'monospace', color: VS.text2, textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '4px' };
 
+  // ── Unique categories for saved sources ─────────────────
+  const savedCategories = Array.from(new Set(savedSources.map(s => s.category).filter(Boolean)));
+
   return (
     <>
       {/* Loading overlay */}
@@ -334,7 +403,7 @@ export default function CreateArticle2Page() {
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: VS.bg0, fontFamily: "'DM Sans', sans-serif" }}>
 
         {/* ── Left: Form panel ─────────────────────────── */}
-        <div style={{ width: formCollapsed ? 0 : '400px', minWidth: formCollapsed ? 0 : '400px', overflowY: 'auto', overflowX: 'hidden', borderRight: `1px solid ${VS.border}`, background: VS.bg1, transition: 'width 0.25s ease, min-width 0.25s ease', flexShrink: 0 }}>
+        <div style={{ width: formCollapsed ? 0 : '420px', minWidth: formCollapsed ? 0 : '420px', overflowY: 'auto', overflowX: 'hidden', borderRight: `1px solid ${VS.border}`, background: VS.bg1, transition: 'width 0.25s ease, min-width 0.25s ease', flexShrink: 0 }}>
           {!formCollapsed && (
             <div style={{ padding: '18px' }}>
               {error && (
@@ -355,6 +424,97 @@ export default function CreateArticle2Page() {
               {/* ── Editor mode ── */}
               {mode === 'editor' && (
                 <div>
+
+                  {/* ── Saved Sources accordion ── */}
+                  <div style={{ border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '12px' }}>
+                    <button onClick={() => setSlOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: VS.bg1, border: 'none', color: slOpen ? VS.accent : VS.text2, cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <ChevronRight size={11} style={{ transform: slOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                        <Bookmark size={10} />
+                        Saved Sources
+                      </span>
+                      <span style={{ fontSize: '9px', color: savedSources.length ? VS.accent : VS.text2, fontWeight: 400 }}>
+                        {savedSources.length ? `${savedSources.length} saved` : 'None saved'}
+                      </span>
+                    </button>
+
+                    {slOpen && (
+                      <div style={{ padding: '10px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+
+                        {/* Saved source list */}
+                        {savedSources.length === 0 && !addingNew && (
+                          <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text2, textAlign: 'center', padding: '10px 0' }}>No saved sources yet.</div>
+                        )}
+
+                        {/* Group by category */}
+                        {(savedCategories.length > 0 ? savedCategories : ['']).map(cat => {
+                          const group = savedSources.filter(s => s.category === cat);
+                          if (group.length === 0) return null;
+                          return (
+                            <div key={cat || '__none__'}>
+                              {cat && (
+                                <div style={{ fontFamily: 'monospace', fontSize: '8px', color: VS.accent, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', marginTop: '2px' }}>{cat}</div>
+                              )}
+                              {group.map(src => (
+                                <div key={src.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: VS.bg3, borderRadius: '5px', marginBottom: '3px' }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.label}</div>
+                                    <div style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.url}</div>
+                                  </div>
+                                  {/* Add to article buttons */}
+                                  {articles.length === 1 ? (
+                                    <button onClick={() => addSavedSourceToArticle(0, src.url)} style={{ padding: '3px 8px', borderRadius: '4px', border: `1px solid ${VS.accent}`, background: VS.accentGlow, color: VS.accent, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer', flexShrink: 0 }}>+ Add</button>
+                                  ) : (
+                                    <div style={{ display: 'flex', gap: '3px', flexShrink: 0 }}>
+                                      {articles.map((_, ai) => (
+                                        <button key={ai} onClick={() => addSavedSourceToArticle(ai, src.url)} style={{ padding: '3px 7px', borderRadius: '4px', border: `1px solid ${VS.accent}`, background: VS.accentGlow, color: VS.accent, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer' }}>+A{ai + 1}</button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button onClick={() => deleteSavedSource(src.id)} style={{ width: '22px', height: '22px', borderRadius: '4px', border: `1px solid rgba(244,71,71,0.25)`, background: 'transparent', color: VS.error, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Trash2 size={10} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+
+                        {/* Add new source form */}
+                        {addingNew ? (
+                          <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '7px', marginTop: '4px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                              <div>
+                                <label style={lbl}>Label</label>
+                                <input style={inp} value={newSrc.label} onChange={e => setNewSrc(v => ({ ...v, label: e.target.value }))} placeholder="e.g. AFR" />
+                              </div>
+                              <div>
+                                <label style={lbl}>Category</label>
+                                <input style={inp} value={newSrc.category} onChange={e => setNewSrc(v => ({ ...v, category: e.target.value }))} placeholder="e.g. Finance" list="cat-suggestions" />
+                                <datalist id="cat-suggestions">
+                                  {savedCategories.map(c => <option key={c} value={c} />)}
+                                </datalist>
+                              </div>
+                            </div>
+                            <div>
+                              <label style={lbl}>URL</label>
+                              <input style={inp} type="url" value={newSrc.url} onChange={e => setNewSrc(v => ({ ...v, url: e.target.value }))} placeholder="https://…" />
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button onClick={saveNewSource} style={{ flex: 1, padding: '6px', background: VS.accent, color: '#fff', border: 'none', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                              <button onClick={() => { setAddingNew(false); setNewSrc({ label: '', category: '', url: '' }); }} style={{ padding: '6px 10px', background: 'transparent', color: VS.text2, border: `1px solid ${VS.border}`, borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer' }}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => setAddingNew(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', padding: '6px', border: `1px dashed ${VS.border}`, borderRadius: '5px', background: 'transparent', color: VS.text2, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer', marginTop: '2px' }}>
+                            <Plus size={10} /> Add new source
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Articles ── */}
                   <div style={{ fontSize: '11px', fontWeight: 600, color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'monospace', marginBottom: '12px' }}>Articles</div>
                   {articles.map((art, i) => (
                     <div key={i} style={{ border: `1px solid ${VS.border}`, borderRadius: '8px', padding: '12px', marginBottom: '10px', background: VS.bg2 }}>
@@ -366,7 +526,9 @@ export default function CreateArticle2Page() {
                         <label style={lbl}>Angle (optional)</label>
                         <input style={inp} value={art.topic} onChange={e => updateTopic(i, e.target.value)} placeholder="e.g. Lead with funding implications for QLD tech" />
                       </div>
-                      <label style={lbl}>Sources</label>
+
+                      {/* URL Sources */}
+                      <label style={lbl}>Source URLs</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '7px' }}>
                         {art.sources.map((src, si) => (
                           <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -376,7 +538,36 @@ export default function CreateArticle2Page() {
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => addSource(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}>+ Source</button>
+                      <button onClick={() => addSource(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', marginBottom: '10px' }}>+ URL</button>
+
+                      {/* File Sources */}
+                      <div style={{ borderTop: `1px solid ${VS.border}`, paddingTop: '8px' }}>
+                        <label style={{ ...lbl, marginBottom: '6px' }}>Uploaded Files</label>
+                        {art.files.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '6px' }}>
+                            {art.files.map((f, fi) => (
+                              <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.bg3, borderRadius: '5px' }}>
+                                <Upload size={10} style={{ color: VS.accent, flexShrink: 0 }} />
+                                <span style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                <button onClick={() => removeFile(i, fi)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <input
+                          ref={el => { fileInputRefs.current[i] = el; }}
+                          type="file"
+                          accept=".txt,.md,.csv"
+                          style={{ display: 'none' }}
+                          onChange={e => handleFileUpload(i, e)}
+                        />
+                        <button
+                          onClick={() => fileInputRefs.current[i]?.click()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '5px', fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}
+                        >
+                          <Upload size={10} /> Upload file (.txt, .md)
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {articles.length < 5 && (
@@ -576,7 +767,7 @@ export default function CreateArticle2Page() {
                   <line x1="14" y1="28" x2="26" y2="28"/>
                 </svg>
                 <h3 style={{ fontFamily: 'inherit', fontSize: '18px', color: VS.text1, fontWeight: 400, margin: 0 }}>No articles yet</h3>
-                <p style={{ fontSize: '13px', maxWidth: '280px', lineHeight: 1.6, margin: 0 }}>Paste source URLs and click Generate — n8n will scrape and rewrite them in BNA style.</p>
+                <p style={{ fontSize: '13px', maxWidth: '280px', lineHeight: 1.6, margin: 0 }}>Paste source URLs or upload files, then click Generate.</p>
               </div>
             ) : viewMode === 'raw' ? (
               <pre style={{ padding: '28px', fontFamily: 'monospace', fontSize: '12px', color: '#333', lineHeight: 1.8, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#fff', minHeight: '100%', margin: 0 }}>

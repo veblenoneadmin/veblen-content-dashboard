@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const body = await req.json();
-    const articles: { sources: string[]; topic: string; categorical?: boolean }[] = body.articles || [];
+    const articles: { sources: string[]; files?: { name: string; content: string }[]; topic: string; categorical?: boolean }[] = body.articles || [];
 
     const results = [];
 
@@ -46,6 +46,12 @@ export async function POST(req: NextRequest) {
             scrapedSources.push(`=== SOURCE: ${src} ===\n[Failed to fetch — URL may be paywalled or unavailable]`);
           }
         }
+      }
+
+      // Include uploaded file content directly
+      for (const file of art.files || []) {
+        const trimmed = file.content.split(/\s+/).slice(0, 3500).join(' ');
+        scrapedSources.push(`=== SOURCE: ${file.name} ===\n${trimmed}`);
       }
 
       const sourceBlock = scrapedSources.length
