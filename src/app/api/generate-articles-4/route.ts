@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import fs from 'fs';
-import path from 'path';
-
-const BNA_STYLE_PROFILE = fs.readFileSync(
-  path.join(process.cwd(), 'final_bna.md'),
-  'utf-8'
-);
+import BNA_STYLE_PROFILE from '@/lib/bna-style-profile';
 
 async function scrapeUrl(url: string): Promise<string> {
   const res = await fetch(`https://r.jina.ai/${url}`, {
