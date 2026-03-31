@@ -2,17 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  House, Newspaper, Hash, Layout, Play, Camera,
-  Briefcase, BarChart2, CalendarDays, Users, FileText, Archive, Zap, Mic, Workflow, X, TrendingUp, ClipboardCheck, Tag, ScrollText, Share2,
-} from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import ContentSenseLogo from '@/components/shared/ContentSenseLogo';
 
 const navItems = [
-  { group: null, label: 'InsightWire', href: '/dashboard/create-article-2', icon: FileText },
+  { label: 'InsightWire', href: '/dashboard/create-article-2', icon: FileText },
 ];
-
-const groups = ['RESEARCH', 'CREATE', 'INSIGHTS', 'AUTOMATION'];
 
 const VS = {
   bg1: '#252526',
@@ -33,66 +28,16 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
-  const ungrouped = navItems.filter(item => item.group === null);
-  const grouped = groups.map(group => ({
-    label: group,
-    items: navItems.filter(item => item.group === group),
-  }));
-
-  const renderItem = (item: typeof navItems[0]) => {
-    const isActive = pathname === item.href;
-    const Icon = item.icon;
-
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '8px 10px',
-          borderRadius: '6px',
-          textDecoration: 'none',
-          fontSize: '13px',
-          fontWeight: isActive ? 500 : 400,
-          color: isActive ? VS.text0 : VS.text2,
-          background: isActive ? accentBg : 'transparent',
-          borderLeft: isActive ? `2px solid ${VS.accent}` : '2px solid transparent',
-          transition: 'background 0.15s, color 0.15s',
-        }}
-        onMouseEnter={e => {
-          if (!isActive) {
-            (e.currentTarget as HTMLElement).style.background = VS.bg2;
-            (e.currentTarget as HTMLElement).style.color = VS.text1;
-          }
-        }}
-        onMouseLeave={e => {
-          if (!isActive) {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = VS.text2;
-          }
-        }}
-      >
-        <Icon size={15} />
-        <span>{item.label}</span>
-      </Link>
-    );
-  };
-
   return (
     <>
-      {/* Mobile backdrop */}
       {isOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={onClose} />
       )}
 
-      {/* Sidebar panel */}
       <div
         className={`fixed inset-y-0 left-0 z-50 w-60 flex flex-col transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ background: VS.bg1, borderRight: `1px solid ${VS.border}` }}
       >
-        {/* Brand — h-14 matches navbar height */}
         <div
           className="flex h-14 items-center justify-between px-4 shrink-0"
           style={{ borderBottom: `1px solid ${VS.border}` }}
@@ -107,31 +52,48 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-            {ungrouped.map(renderItem)}
+            {navItems.map(item => {
+              const isActive = pathname === item.href;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontSize: '13px',
+                    fontWeight: isActive ? 500 : 400,
+                    color: isActive ? VS.text0 : VS.text2,
+                    background: isActive ? accentBg : 'transparent',
+                    borderLeft: isActive ? `2px solid ${VS.accent}` : '2px solid transparent',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.background = VS.bg2;
+                      (e.currentTarget as HTMLElement).style.color = VS.text1;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLElement).style.color = VS.text2;
+                    }
+                  }}
+                >
+                  <Icon size={15} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
-          {grouped.map(group => (
-            <div key={group.label} style={{ marginTop: '16px' }}>
-              <div
-                style={{
-                  fontSize: '9px',
-                  fontWeight: 600,
-                  letterSpacing: '0.08em',
-                  color: '#4d4d4d',
-                  padding: '0 10px',
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {group.label}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                {group.items.map(renderItem)}
-              </div>
-            </div>
-          ))}
         </nav>
       </div>
     </>
