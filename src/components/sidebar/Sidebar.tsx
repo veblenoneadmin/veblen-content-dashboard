@@ -18,7 +18,7 @@ const navItems = [
   { group: 'CREATE',      label: 'Instagram',       href: '/dashboard/instagram',      icon: Camera },
   { group: 'CREATE',      label: 'LinkedIn',        href: '/dashboard/linkedin',       icon: Briefcase },
   { group: 'CREATE',      label: 'Create Article',  href: '/dashboard/create-article',  icon: FileText },
-  { group: 'CREATE',      label: 'Create Article 2', href: '/dashboard/create-article-2', icon: FileText },
+  { group: 'CREATE',      label: 'InsightWire',       href: '/dashboard/create-article-2', icon: FileText },
   { group: 'CREATE',      label: 'Social Sources',  href: '/dashboard/social-sources',  icon: Share2 },
   { group: 'INSIGHTS',    label: 'Analytics',       href: '/dashboard/analytics',      icon: BarChart2 },
   { group: 'INSIGHTS',    label: 'Calendar',        href: '/dashboard/calendar',       icon: CalendarDays },
