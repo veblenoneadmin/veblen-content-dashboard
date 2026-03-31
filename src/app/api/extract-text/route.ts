@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+async function extractPdf(buffer: Buffer): Promise<string> {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const parts: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: unknown) => (item as { str?: string }).str ?? '')
+      .join(' ');
+    parts.push(pageText);
+  }
+  return parts.join('\n');
+}
+
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
@@ -13,10 +28,7 @@ export async function POST(req: NextRequest) {
     if (ext === 'txt') {
       text = buffer.toString('utf-8');
     } else if (ext === 'pdf') {
-      const pdfMod = await import('pdf-parse');
-      const pdfParse = (pdfMod as unknown as { default: (buf: Buffer) => Promise<{ text: string }> }).default ?? pdfMod;
-      const result = await pdfParse(buffer);
-      text = result.text;
+      text = await extractPdf(buffer);
     } else if (ext === 'doc' || ext === 'docx') {
       const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer });
