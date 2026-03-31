@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const body = await req.json();
-    const articles: { sources: string[]; files?: { name: string; content: string }[]; topic: string; categorical?: boolean }[] = body.articles || [];
+    const articles: { sources: string[]; files?: { name: string; content: string; fileType?: string }[]; topic: string; categorical?: boolean }[] = body.articles || [];
 
     const results = [];
 
@@ -36,41 +36,57 @@ export async function POST(req: NextRequest) {
       const art = articles[i];
 
       // Scrape source URLs via Jina reader
-      const scrapedSources: string[] = [];
+      const textSources: string[] = [];
       for (const src of art.sources || []) {
         if (src.trim()) {
           try {
             const text = await scrapeUrl(src.trim());
-            scrapedSources.push(`=== SOURCE: ${src} ===\n${text}`);
+            textSources.push(`=== SOURCE: ${src} ===\n${text}`);
           } catch {
-            scrapedSources.push(`=== SOURCE: ${src} ===\n[Failed to fetch — URL may be paywalled or unavailable]`);
+            textSources.push(`=== SOURCE: ${src} ===\n[Failed to fetch — URL may be paywalled or unavailable]`);
           }
         }
       }
 
-      // Include uploaded file content directly
+      // Separate text files from PDF files
+      const pdfFiles: { name: string; content: string }[] = [];
       for (const file of art.files || []) {
-        const trimmed = file.content.split(/\s+/).slice(0, 3500).join(' ');
-        scrapedSources.push(`=== SOURCE: ${file.name} ===\n${trimmed}`);
+        if (file.fileType === 'pdf') {
+          pdfFiles.push({ name: file.name, content: file.content });
+        } else {
+          const trimmed = file.content.split(/\s+/).slice(0, 3500).join(' ');
+          textSources.push(`=== SOURCE: ${file.name} ===\n${trimmed}`);
+        }
       }
 
-      const sourceBlock = scrapedSources.length
-        ? `\n\nSOURCE MATERIAL:\n${scrapedSources.join('\n\n---\n\n')}`
+      const topicBlock = art.topic ? `\nANGLE/FOCUS: ${art.topic}` : '';
+      const sourceBlock = textSources.length
+        ? `\n\nSOURCE MATERIAL:\n${textSources.join('\n\n---\n\n')}`
         : '';
 
-      const topicBlock = art.topic ? `\nANGLE/FOCUS: ${art.topic}` : '';
-
-      const prompt = BNA_STYLE_PROFILE
+      const textPrompt = BNA_STYLE_PROFILE
         + topicBlock
         + (art.categorical
           ? '\n\nWrite an original BNA-style article on the topic above. No source material provided — draw on your knowledge of the subject.'
-          : '\n\nUsing the source material below, write an original BNA-style business news article. Follow the style guide above exactly. Output the article only.')
+          : '\n\nUsing the source material provided, write an original BNA-style business news article. Follow the style guide above exactly. Output the article only.')
         + sourceBlock;
+
+      // Build message content — add PDFs as document blocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const messageContent: any[] = [{ type: 'text', text: textPrompt }];
+      for (const pdf of pdfFiles) {
+        messageContent.push({
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: pdf.content },
+          title: pdf.name,
+        });
+      }
 
       const message = await client.messages.create({
         model: 'claude-opus-4-6',
         max_tokens: 3000,
-        messages: [{ role: 'user', content: prompt }],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        messages: [{ role: 'user', content: messageContent as any }],
       });
 
       const articleText = message.content[0]?.type === 'text' ? message.content[0].text : '';

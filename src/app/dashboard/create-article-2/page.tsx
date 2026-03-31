@@ -44,9 +44,10 @@ const LOADING_MSGS = [
   ['Almost there…', 'Applying final formatting'],
 ];
 
-type SavedSource  = { id: string; label: string; category: string; url: string };
-type FileSource   = { name: string; content: string };
-type ArticleInput = { topic: string; sources: string[]; files: FileSource[] };
+type SavedSource   = { id: string; label: string; category: string; url: string };
+type FileSource    = { name: string; content: string; fileType: 'text' | 'pdf' };
+type ArticleInput  = { topic: string; sources: string[]; files: FileSource[] };
+type CategoryInput = { topic: string; sources: string[]; files: FileSource[] };
 type ArticleResult = { index: number; topic: string; articleText: string };
 
 // ── BNA Preview ───────────────────────────────────────────
@@ -78,7 +79,6 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
 
   return (
     <div style={{ background: '#f0efe8', minHeight: '100%' }}>
-      {/* BNA Header */}
       <div style={{ background: '#fff', borderBottom: '3px solid #000', position: 'sticky', top: 0, zIndex: 5 }}>
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: "'Pragati Narrow', 'Playfair Display', serif", fontSize: '26px', fontWeight: 700, color: '#000', letterSpacing: '-0.5px' }}>
@@ -91,8 +91,6 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
           </div>
         </div>
       </div>
-
-      {/* Article body */}
       <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '28px 20px 60px', display: 'grid', gridTemplateColumns: '1fr 290px', gap: '28px' }}>
         <div>
           {headline && (
@@ -100,13 +98,9 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
               dangerouslySetInnerHTML={{ __html: headline }} />
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid #eee' }}>
-            <span style={{ fontFamily: 'sans-serif', fontSize: '13px', color: '#333', fontWeight: 700 }}>
-              By <span style={{ color: '#00AEEF' }}>InsightWire</span>
-            </span>
+            <span style={{ fontFamily: 'sans-serif', fontSize: '13px', color: '#333', fontWeight: 700 }}>By <span style={{ color: '#00AEEF' }}>InsightWire</span></span>
             <span style={{ fontFamily: 'sans-serif', fontSize: '12px', color: '#999' }}>{today}</span>
           </div>
-
-          {/* Image area */}
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
           <div
@@ -132,37 +126,22 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
             {urlBarOpen && (
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.82)', padding: '8px 10px', display: 'flex', gap: '6px', alignItems: 'center', zIndex: 3 }}
                 onClick={e => e.stopPropagation()}>
-                <input
-                  value={urlInput} onChange={e => setUrlInput(e.target.value)}
+                <input value={urlInput} onChange={e => setUrlInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { onImgChange(urlInput); setUrlBarOpen(false); setUrlInput(''); } }}
                   placeholder="Paste image URL…"
-                  style={{ flex: 1, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '4px', padding: '5px 9px', color: '#fff', fontSize: '12px', outline: 'none' }}
-                  autoFocus
-                />
-                <button onClick={() => { onImgChange(urlInput); setUrlBarOpen(false); setUrlInput(''); }}
-                  style={{ background: '#00AEEF', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>Apply</button>
-                <button onClick={() => { setUrlBarOpen(false); fileRef.current?.click(); }}
-                  style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Upload</button>
-                <button onClick={() => setUrlBarOpen(false)}
-                  style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '4px', padding: '5px 9px', color: '#fff', fontSize: '12px', outline: 'none' }} autoFocus />
+                <button onClick={() => { onImgChange(urlInput); setUrlBarOpen(false); setUrlInput(''); }} style={{ background: '#00AEEF', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>Apply</button>
+                <button onClick={() => { setUrlBarOpen(false); fileRef.current?.click(); }} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Upload</button>
+                <button onClick={() => setUrlBarOpen(false)} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
               </div>
             )}
             {imgSrc && (
-              <button onClick={e => { e.stopPropagation(); onImgChange(''); }}
-                style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', zIndex: 3 }}>×</button>
+              <button onClick={e => { e.stopPropagation(); onImgChange(''); }} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', zIndex: 3 }}>×</button>
             )}
           </div>
           <div style={{ fontFamily: 'sans-serif', fontSize: '12px', color: '#999', fontStyle: 'italic', marginBottom: '18px', textAlign: 'right' }}>Image caption</div>
-
-          {/* Article body */}
-          <div
-            className="bna-body"
-            dangerouslySetInnerHTML={{ __html: bodyHtml }}
-            style={{ fontFamily: 'sans-serif', fontSize: '16px', color: '#656565', lineHeight: 1.72 }}
-          />
+          <div className="bna-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} style={{ fontFamily: 'sans-serif', fontSize: '16px', color: '#656565', lineHeight: 1.72 }} />
         </div>
-
-        {/* Sidebar */}
         <div>
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontFamily: 'sans-serif', fontSize: '13px', color: '#A12611', fontWeight: 700, textTransform: 'uppercase', marginBottom: '10px', paddingBottom: '8px', borderBottom: '2px solid #A12611', letterSpacing: '0.5px' }}>Latest News</div>
@@ -174,7 +153,6 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
           </div>
         </div>
       </div>
-
       <style>{`
         .bna-body p { margin: 0 0 15px; }
         .bna-body h1 { font-family: sans-serif; font-size: 28px; color: #000; margin: 0 0 12px; font-weight: 700; }
@@ -191,13 +169,70 @@ function BnaPreview({ article, imgSrc, onImgChange }: {
   );
 }
 
+// ── Reusable source+file block ────────────────────────────
+function SourceBlock({
+  sources, files, fileInputRef, onAddSource, onRemoveSource, onUpdateSource, onRemoveFile, onFileUpload,
+}: {
+  sources: string[];
+  files: FileSource[];
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onAddSource: () => void;
+  onRemoveSource: (si: number) => void;
+  onUpdateSource: (si: number, v: string) => void;
+  onRemoveFile: (fi: number) => void;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const inp: React.CSSProperties = { background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '8px 11px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px', width: '100%', outline: 'none', boxSizing: 'border-box' };
+  const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontFamily: 'monospace', color: VS.text2, textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '4px' };
+
+  return (
+    <div>
+      <label style={lbl}>Source URLs</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '7px' }}>
+        {sources.map((src, si) => (
+          <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, width: '14px', textAlign: 'right', flexShrink: 0 }}>{si + 1}</span>
+            <input style={{ ...inp, flex: 1 }} type="url" value={src} onChange={e => onUpdateSource(si, e.target.value)} placeholder="https://…" />
+            {si > 0 && <button onClick={() => onRemoveSource(si)} style={{ width: '24px', height: '24px', borderRadius: '4px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>×</button>}
+          </div>
+        ))}
+      </div>
+      <button onClick={onAddSource} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', marginBottom: '10px' }}>+ URL</button>
+
+      <div style={{ borderTop: `1px solid ${VS.border}`, paddingTop: '8px' }}>
+        <label style={{ ...lbl, marginBottom: '6px' }}>Uploaded Files</label>
+        {files.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '6px' }}>
+            {files.map((f, fi) => (
+              <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.bg3, borderRadius: '5px' }}>
+                <Upload size={10} style={{ color: f.fileType === 'pdf' ? '#f44747' : VS.accent, flexShrink: 0 }} />
+                <span style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '8px', color: VS.text2, flexShrink: 0, textTransform: 'uppercase' }}>{f.fileType}</span>
+                <button onClick={() => onRemoveFile(fi)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.pdf,.doc,.docx" style={{ display: 'none' }} onChange={onFileUpload} />
+        <button onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}>
+          <Upload size={10} /> Upload file (.txt, .md, .pdf, .docx)
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────
 export default function CreateArticle2Page() {
   const [mode, setMode]             = useState<'editor' | 'categorical'>('editor');
   const [tone, setTone]             = useState('Authoritative');
   const [mood, setMood]             = useState('News Report');
   const [articles, setArticles]     = useState<ArticleInput[]>([{ topic: '', sources: [''], files: [] }]);
-  const [categories, setCategories] = useState(['', '', '']);
+  const [categories, setCategories] = useState<CategoryInput[]>([
+    { topic: '', sources: [''], files: [] },
+    { topic: '', sources: [''], files: [] },
+    { topic: '', sources: [''], files: [] },
+  ]);
   const [wordCount, setWordCount]   = useState('');
   const [catWordCount, setCatWordCount] = useState('');
   const [catRegion, setCatRegion]   = useState('');
@@ -241,20 +276,13 @@ export default function CreateArticle2Page() {
     setAddingNew(false);
   };
 
-  const deleteSavedSource = (id: string) => {
-    persistSources(savedSources.filter(s => s.id !== id));
-  };
+  const deleteSavedSource = (id: string) => persistSources(savedSources.filter(s => s.id !== id));
 
   const addSavedSourceToArticle = (artIdx: number, url: string) => {
     setArticles(a => a.map((art, j) => {
       if (j !== artIdx) return art;
-      // replace first empty URL slot, or append
       const emptyIdx = art.sources.findIndex(s => !s.trim());
-      if (emptyIdx >= 0) {
-        const updated = [...art.sources];
-        updated[emptyIdx] = url;
-        return { ...art, sources: updated };
-      }
+      if (emptyIdx >= 0) { const u = [...art.sources]; u[emptyIdx] = url; return { ...art, sources: u }; }
       return { ...art, sources: [...art.sources, url] };
     }));
   };
@@ -274,41 +302,69 @@ export default function CreateArticle2Page() {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
-  // ── Article input helpers ───────────────────────────────
-  const addArticle      = () => setArticles(a => [...a, { topic: '', sources: [''], files: [] }]);
-  const removeArticle   = (i: number) => setArticles(a => a.filter((_, j) => j !== i));
-  const updateTopic     = (i: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, topic: v } : art));
-  const addSource       = (i: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: [...art.sources, ''] } : art));
-  const removeSource    = (i: number, si: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.filter((_, k) => k !== si) } : art));
-  const updateSource    = (i: number, si: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.map((s, k) => k === si ? v : s) } : art));
-  const updateCategory  = (i: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? v : cat));
-  const removeFile      = (i: number, fi: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, files: art.files.filter((_, k) => k !== fi) } : art));
+  // ── Article helpers ─────────────────────────────────────
+  const addArticle    = () => setArticles(a => [...a, { topic: '', sources: [''], files: [] }]);
+  const removeArticle = (i: number) => setArticles(a => a.filter((_, j) => j !== i));
+  const updateTopic   = (i: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, topic: v } : art));
+  const addArtSource  = (i: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: [...art.sources, ''] } : art));
+  const removeArtSource = (i: number, si: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.filter((_, k) => k !== si) } : art));
+  const updateArtSource = (i: number, si: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.map((s, k) => k === si ? v : s) } : art));
+  const removeArtFile   = (i: number, fi: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, files: art.files.filter((_, k) => k !== fi) } : art));
 
-  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // ── Category helpers ────────────────────────────────────
+  const updateCatTopic  = (i: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, topic: v } : cat));
+  const addCatSource    = (i: number) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, sources: [...cat.sources, ''] } : cat));
+  const removeCatSource = (i: number, si: number) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, sources: cat.sources.filter((_, k) => k !== si) } : cat));
+  const updateCatSource = (i: number, si: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, sources: cat.sources.map((s, k) => k === si ? v : s) } : cat));
+  const removeCatFile   = (i: number, fi: number) => setCategories(c => c.map((cat, j) => j === i ? { ...cat, files: cat.files.filter((_, k) => k !== fi) } : cat));
 
-  const handleFileUpload = (artIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const raw = ev.target?.result as string;
-      // Trim to 3500 words client-side to match Jina scrape limit
-      const content = raw.split(/\s+/).slice(0, 3500).join(' ');
-      setArticles(a => a.map((art, j) => j === artIdx ? { ...art, files: [...art.files, { name: file.name, content }] } : art));
-    };
-    reader.readAsText(file);
+  // ── File upload handler ─────────────────────────────────
+  const artFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const catFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const readFile = (file: File, onDone: (fs: FileSource) => void) => {
+    const isPdf  = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+    if (isPdf) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const buf = ev.target?.result as ArrayBuffer;
+        const bytes = new Uint8Array(buf);
+        let bin = '';
+        bytes.forEach(b => { bin += String.fromCharCode(b); });
+        onDone({ name: file.name, content: btoa(bin), fileType: 'pdf' });
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const raw = ev.target?.result as string;
+        const content = raw.split(/\s+/).slice(0, 3500).join(' ');
+        onDone({ name: file.name, content, fileType: 'text' });
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleArtFileUpload = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    readFile(file, fs => setArticles(a => a.map((art, j) => j === i ? { ...art, files: [...art.files, fs] } : art)));
+    e.target.value = '';
+  };
+
+  const handleCatFileUpload = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    readFile(file, fs => setCategories(c => c.map((cat, j) => j === i ? { ...cat, files: [...cat.files, fs] } : cat)));
     e.target.value = '';
   };
 
   // ── Generate ────────────────────────────────────────────
   const handleGenerate = async () => {
     setError('');
-
     if (mode === 'editor') {
       const hasSource = articles.some(a => a.sources.some(s => s.trim()) || a.files.length > 0);
       if (!hasSource) { setError('Please provide at least one source URL or uploaded file.'); return; }
     } else {
-      if (!categories.some(c => c.trim())) { setError('Please provide at least one topic.'); return; }
+      if (!categories.some(c => c.topic.trim())) { setError('Please provide at least one topic.'); return; }
     }
 
     startLoading();
@@ -317,29 +373,25 @@ export default function CreateArticle2Page() {
 
       if (mode === 'editor') {
         const arts = articles
-          .map(a => ({
-            sources: a.sources.filter(s => s.trim()),
-            files: a.files,
-            topic: a.topic.trim(),
-          }))
+          .map(a => ({ sources: a.sources.filter(s => s.trim()), files: a.files, topic: a.topic.trim() }))
           .filter(a => a.sources.length > 0 || a.files.length > 0);
-        payload = {
-          articles: arts,
-          tone, mood,
-          ...(wordCount ? { wordCount: parseInt(wordCount) } : {}),
-        };
+        payload = { articles: arts, tone, mood, ...(wordCount ? { wordCount: parseInt(wordCount) } : {}) };
       } else {
         const wl = whitelist.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-        const cats = categories.filter(c => c.trim()).map(c => ({
-          sources: [], files: [], topic: c, categorical: true,
-          ...(catRegion ? { region: catRegion } : {}),
-          ...(wl.length ? { whitelist: wl } : {}),
-        }));
-        payload = {
-          articles: cats, categorical: true, tone, mood,
-          ...(catWordCount ? { wordCount: parseInt(catWordCount) } : {}),
-          ...(catRegion ? { region: catRegion } : {}),
-        };
+        const cats = categories
+          .filter(c => c.topic.trim())
+          .map(c => {
+            const hasSources = c.sources.some(s => s.trim()) || c.files.length > 0;
+            return {
+              sources: c.sources.filter(s => s.trim()),
+              files: c.files,
+              topic: c.topic,
+              categorical: !hasSources,
+              ...(catRegion ? { region: catRegion } : {}),
+              ...(wl.length ? { whitelist: wl } : {}),
+            };
+          });
+        payload = { articles: cats, tone, mood, ...(catWordCount ? { wordCount: parseInt(catWordCount) } : {}), ...(catRegion ? { region: catRegion } : {}) };
       }
 
       const res = await fetch('/api/generate-articles-4', {
@@ -349,7 +401,6 @@ export default function CreateArticle2Page() {
       });
 
       if (!res.ok) { setError(`API returned HTTP ${res.status}`); return; }
-
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
       if (!data.articles?.length) { setError('No articles returned.'); return; }
@@ -365,30 +416,20 @@ export default function CreateArticle2Page() {
   };
 
   const currentArticle = results.find(a => a.index === currentIdx) ?? results[0];
-
-  const copyArticle = () => {
-    if (!currentArticle) return;
-    navigator.clipboard.writeText(currentArticle.articleText);
-  };
-
+  const copyArticle    = () => { if (currentArticle) navigator.clipboard.writeText(currentArticle.articleText); };
   const downloadArticle = () => {
     if (!currentArticle) return;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([currentArticle.articleText], { type: 'text/plain' }));
-    a.download = `bna-article-${currentIdx}.txt`;
-    a.click();
+    a.download = `bna-article-${currentIdx}.txt`; a.click();
   };
 
-  // ── Shared input style ──────────────────────────────────
   const inp: React.CSSProperties = { background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '8px 11px', color: VS.text0, fontFamily: 'inherit', fontSize: '13px', width: '100%', outline: 'none', boxSizing: 'border-box' };
   const lbl: React.CSSProperties = { display: 'block', fontSize: '9px', fontFamily: 'monospace', color: VS.text2, textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '4px' };
-
-  // ── Unique categories for saved sources ─────────────────
   const savedCategories = Array.from(new Set(savedSources.map(s => s.category).filter(Boolean)));
 
   return (
     <>
-      {/* Loading overlay */}
       {loading && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(6,6,11,0.93)', backdropFilter: 'blur(14px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
           <Loader2 size={40} style={{ color: VS.accent, animation: 'spin 1s linear infinite' }} />
@@ -402,14 +443,12 @@ export default function CreateArticle2Page() {
 
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: VS.bg0, fontFamily: "'DM Sans', sans-serif" }}>
 
-        {/* ── Left: Form panel ─────────────────────────── */}
+        {/* ── Left panel ───────────────────────────────── */}
         <div style={{ width: formCollapsed ? 0 : '420px', minWidth: formCollapsed ? 0 : '420px', overflowY: 'auto', overflowX: 'hidden', borderRight: `1px solid ${VS.border}`, background: VS.bg1, transition: 'width 0.25s ease, min-width 0.25s ease', flexShrink: 0 }}>
           {!formCollapsed && (
             <div style={{ padding: '18px' }}>
               {error && (
-                <div style={{ background: 'rgba(244,71,71,0.08)', border: '1px solid rgba(244,71,71,0.2)', color: VS.error, padding: '9px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '11px', fontFamily: 'monospace' }}>
-                  {error}
-                </div>
+                <div style={{ background: 'rgba(244,71,71,0.08)', border: '1px solid rgba(244,71,71,0.2)', color: VS.error, padding: '9px 12px', borderRadius: '6px', marginBottom: '12px', fontSize: '11px', fontFamily: 'monospace' }}>{error}</div>
               )}
 
               {/* Mode tabs */}
@@ -421,47 +460,37 @@ export default function CreateArticle2Page() {
                 ))}
               </div>
 
-              {/* ── Editor mode ── */}
+              {/* ── Source URLs mode ── */}
               {mode === 'editor' && (
                 <div>
-
-                  {/* ── Saved Sources accordion ── */}
+                  {/* Saved Sources accordion */}
                   <div style={{ border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '12px' }}>
                     <button onClick={() => setSlOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 12px', background: VS.bg1, border: 'none', color: slOpen ? VS.accent : VS.text2, cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <ChevronRight size={11} style={{ transform: slOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                        <Bookmark size={10} />
-                        Saved Sources
+                        <Bookmark size={10} /> Saved Sources
                       </span>
                       <span style={{ fontSize: '9px', color: savedSources.length ? VS.accent : VS.text2, fontWeight: 400 }}>
                         {savedSources.length ? `${savedSources.length} saved` : 'None saved'}
                       </span>
                     </button>
-
                     {slOpen && (
                       <div style={{ padding: '10px', borderTop: `1px solid ${VS.border}`, background: VS.bg2, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-
-                        {/* Saved source list */}
                         {savedSources.length === 0 && !addingNew && (
                           <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text2, textAlign: 'center', padding: '10px 0' }}>No saved sources yet.</div>
                         )}
-
-                        {/* Group by category */}
                         {(savedCategories.length > 0 ? savedCategories : ['']).map(cat => {
                           const group = savedSources.filter(s => s.category === cat);
                           if (group.length === 0) return null;
                           return (
                             <div key={cat || '__none__'}>
-                              {cat && (
-                                <div style={{ fontFamily: 'monospace', fontSize: '8px', color: VS.accent, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', marginTop: '2px' }}>{cat}</div>
-                              )}
+                              {cat && <div style={{ fontFamily: 'monospace', fontSize: '8px', color: VS.accent, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', marginTop: '2px' }}>{cat}</div>}
                               {group.map(src => (
                                 <div key={src.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', background: VS.bg3, borderRadius: '5px', marginBottom: '3px' }}>
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.label}</div>
                                     <div style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.url}</div>
                                   </div>
-                                  {/* Add to article buttons */}
                                   {articles.length === 1 ? (
                                     <button onClick={() => addSavedSourceToArticle(0, src.url)} style={{ padding: '3px 8px', borderRadius: '4px', border: `1px solid ${VS.accent}`, background: VS.accentGlow, color: VS.accent, fontFamily: 'monospace', fontSize: '9px', cursor: 'pointer', flexShrink: 0 }}>+ Add</button>
                                   ) : (
@@ -479,8 +508,6 @@ export default function CreateArticle2Page() {
                             </div>
                           );
                         })}
-
-                        {/* Add new source form */}
                         {addingNew ? (
                           <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '7px', marginTop: '4px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -491,9 +518,7 @@ export default function CreateArticle2Page() {
                               <div>
                                 <label style={lbl}>Category</label>
                                 <input style={inp} value={newSrc.category} onChange={e => setNewSrc(v => ({ ...v, category: e.target.value }))} placeholder="e.g. Finance" list="cat-suggestions" />
-                                <datalist id="cat-suggestions">
-                                  {savedCategories.map(c => <option key={c} value={c} />)}
-                                </datalist>
+                                <datalist id="cat-suggestions">{savedCategories.map(c => <option key={c} value={c} />)}</datalist>
                               </div>
                             </div>
                             <div>
@@ -514,7 +539,7 @@ export default function CreateArticle2Page() {
                     )}
                   </div>
 
-                  {/* ── Articles ── */}
+                  {/* Articles */}
                   <div style={{ fontSize: '11px', fontWeight: 600, color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'monospace', marginBottom: '12px' }}>Articles</div>
                   {articles.map((art, i) => (
                     <div key={i} style={{ border: `1px solid ${VS.border}`, borderRadius: '8px', padding: '12px', marginBottom: '10px', background: VS.bg2 }}>
@@ -526,48 +551,18 @@ export default function CreateArticle2Page() {
                         <label style={lbl}>Angle (optional)</label>
                         <input style={inp} value={art.topic} onChange={e => updateTopic(i, e.target.value)} placeholder="e.g. Lead with funding implications for QLD tech" />
                       </div>
-
-                      {/* URL Sources */}
-                      <label style={lbl}>Source URLs</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '7px' }}>
-                        {art.sources.map((src, si) => (
-                          <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, width: '14px', textAlign: 'right', flexShrink: 0 }}>{si + 1}</span>
-                            <input style={{ ...inp, flex: 1 }} type="url" value={src} onChange={e => updateSource(i, si, e.target.value)} placeholder="https://…" />
-                            {si > 0 && <button onClick={() => removeSource(i, si)} style={{ width: '24px', height: '24px', borderRadius: '4px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>×</button>}
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={() => addSource(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', marginBottom: '10px' }}>+ URL</button>
-
-                      {/* File Sources */}
-                      <div style={{ borderTop: `1px solid ${VS.border}`, paddingTop: '8px' }}>
-                        <label style={{ ...lbl, marginBottom: '6px' }}>Uploaded Files</label>
-                        {art.files.length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '6px' }}>
-                            {art.files.map((f, fi) => (
-                              <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.bg3, borderRadius: '5px' }}>
-                                <Upload size={10} style={{ color: VS.accent, flexShrink: 0 }} />
-                                <span style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.text1, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                                <button onClick={() => removeFile(i, fi)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <input
-                          ref={el => { fileInputRefs.current[i] = el; }}
-                          type="file"
-                          accept=".txt,.md,.csv"
-                          style={{ display: 'none' }}
-                          onChange={e => handleFileUpload(i, e)}
-                        />
-                        <button
-                          onClick={() => fileInputRefs.current[i]?.click()}
-                          style={{ display: 'flex', alignItems: 'center', gap: '5px', fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}
-                        >
-                          <Upload size={10} /> Upload file (.txt, .md)
-                        </button>
-                      </div>
+                      <SourceBlock
+                        sources={art.sources}
+                        files={art.files}
+                        fileInputRef={{ current: artFileRefs.current[i] }}
+                        onAddSource={() => addArtSource(i)}
+                        onRemoveSource={si => removeArtSource(i, si)}
+                        onUpdateSource={(si, v) => updateArtSource(i, si, v)}
+                        onRemoveFile={fi => removeArtFile(i, fi)}
+                        onFileUpload={e => handleArtFileUpload(i, e)}
+                      />
+                      {/* hidden file input */}
+                      <input ref={el => { artFileRefs.current[i] = el; }} type="file" accept=".txt,.md,.csv,.pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => handleArtFileUpload(i, e)} />
                     </div>
                   ))}
                   {articles.length < 5 && (
@@ -627,15 +622,28 @@ export default function CreateArticle2Page() {
               {mode === 'categorical' && (
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 600, color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: 'monospace', marginBottom: '6px' }}>Topics</div>
-                  <p style={{ fontSize: '12px', color: VS.text2, marginBottom: '10px' }}>Up to 3 topics — BNA generates one article each.</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '10px' }}>
-                    {categories.map((cat, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <p style={{ fontSize: '12px', color: VS.text2, marginBottom: '10px' }}>Up to 3 topics. Optionally add source URLs or files per topic.</p>
+
+                  {categories.map((cat, i) => (
+                    <div key={i} style={{ border: `1px solid ${VS.border}`, borderRadius: '8px', padding: '12px', marginBottom: '10px', background: VS.bg2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '10px', color: VS.accent, background: VS.accentGlow, padding: '2px 8px', borderRadius: '4px', fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
-                        <input style={{ ...inp, flex: 1 }} value={cat} onChange={e => updateCategory(i, e.target.value)} placeholder={['e.g. Brisbane fintech raises Q1 2025', 'e.g. QLD construction M&A activity', 'e.g. ASX health tech expanding to US'][i]} />
+                        <input style={{ ...inp, flex: 1 }} value={cat.topic} onChange={e => updateCatTopic(i, e.target.value)} placeholder={['e.g. Brisbane fintech raises Q1 2025', 'e.g. QLD construction M&A activity', 'e.g. ASX health tech expanding to US'][i]} />
                       </div>
-                    ))}
-                  </div>
+                      <SourceBlock
+                        sources={cat.sources}
+                        files={cat.files}
+                        fileInputRef={{ current: catFileRefs.current[i] }}
+                        onAddSource={() => addCatSource(i)}
+                        onRemoveSource={si => removeCatSource(i, si)}
+                        onUpdateSource={(si, v) => updateCatSource(i, si, v)}
+                        onRemoveFile={fi => removeCatFile(i, fi)}
+                        onFileUpload={e => handleCatFileUpload(i, e)}
+                      />
+                      {/* hidden file input */}
+                      <input ref={el => { catFileRefs.current[i] = el; }} type="file" accept=".txt,.md,.csv,.pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => handleCatFileUpload(i, e)} />
+                    </div>
+                  ))}
 
                   {/* Whitelist accordion */}
                   <div style={{ border: `1px solid ${VS.border}`, borderRadius: '7px', overflow: 'hidden', marginBottom: '8px' }}>
@@ -709,17 +717,12 @@ export default function CreateArticle2Page() {
 
         {/* ── Right: Preview panel ─────────────────────── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: results.length ? '#f0efe8' : VS.bg0, minWidth: 0, position: fullscreen ? 'fixed' : 'relative', inset: fullscreen ? 0 : undefined, zIndex: fullscreen ? 500 : undefined }}>
-
-          {/* Preview toolbar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', background: results.length ? '#fff' : VS.bg1, borderBottom: `1px solid ${results.length ? '#ddd' : VS.border}`, flexShrink: 0, gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-              {/* Collapse toggle */}
-              <button onClick={() => setFormCollapsed(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '5px', border: `1px solid ${results.length ? '#ddd' : VS.border}`, background: results.length ? '#f5f5f0' : VS.bg2, color: results.length ? '#666' : VS.text2, cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace', flexShrink: 0 }}>
+              <button onClick={() => setFormCollapsed(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '5px', border: `1px solid ${results.length ? '#ddd' : VS.border}`, background: results.length ? '#f5f5f0' : VS.bg2, color: results.length ? '#666' : VS.text2, cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace', flexShrink: 0 }}>
                 {formCollapsed ? <PanelLeftOpen size={12} /> : <PanelLeftClose size={12} />}
                 {formCollapsed ? 'Show editor' : 'Hide editor'}
               </button>
-              {/* Article tabs */}
               {results.length > 0 && (
                 <div style={{ display: 'flex', gap: '4px', overflow: 'auto', flexWrap: 'nowrap' }}>
                   {results.map((art, idx) => (
@@ -736,18 +739,13 @@ export default function CreateArticle2Page() {
                 <>
                   <div style={{ display: 'flex', gap: '3px' }}>
                     {(['preview', 'raw'] as const).map(v => (
-                      <button key={v} onClick={() => setViewMode(v)}
-                        style={{ fontFamily: 'monospace', fontSize: '10px', padding: '5px 12px', borderRadius: '5px', border: '1px solid #ddd', background: viewMode === v ? '#000' : '#f5f5f0', color: viewMode === v ? '#fff' : '#666', cursor: 'pointer' }}>
+                      <button key={v} onClick={() => setViewMode(v)} style={{ fontFamily: 'monospace', fontSize: '10px', padding: '5px 12px', borderRadius: '5px', border: '1px solid #ddd', background: viewMode === v ? '#000' : '#f5f5f0', color: viewMode === v ? '#fff' : '#666', cursor: 'pointer' }}>
                         {v.charAt(0).toUpperCase() + v.slice(1)}
                       </button>
                     ))}
                   </div>
-                  <button onClick={copyArticle} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}>
-                    <Copy size={11} /> Copy
-                  </button>
-                  <button onClick={downloadArticle} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}>
-                    <Download size={11} /> .txt
-                  </button>
+                  <button onClick={copyArticle} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}><Copy size={11} /> Copy</button>
+                  <button onClick={downloadArticle} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}><Download size={11} /> .txt</button>
                 </>
               )}
               <button onClick={() => setFullscreen(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '5px', border: `1px solid ${results.length ? '#ddd' : VS.border}`, background: results.length ? '#fff' : VS.bg2, color: results.length ? '#666' : VS.text2, cursor: 'pointer', fontSize: '10px', fontFamily: 'monospace' }}>
@@ -755,17 +753,10 @@ export default function CreateArticle2Page() {
               </button>
             </div>
           </div>
-
-          {/* Preview content */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {!results.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '60px 40px', textAlign: 'center', color: VS.text2, gap: '14px' }}>
-                <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" opacity={0.25}>
-                  <rect x="8" y="6" width="32" height="36" rx="3"/>
-                  <line x1="14" y1="16" x2="34" y2="16"/>
-                  <line x1="14" y1="22" x2="34" y2="22"/>
-                  <line x1="14" y1="28" x2="26" y2="28"/>
-                </svg>
+                <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" opacity={0.25}><rect x="8" y="6" width="32" height="36" rx="3"/><line x1="14" y1="16" x2="34" y2="16"/><line x1="14" y1="22" x2="34" y2="22"/><line x1="14" y1="28" x2="26" y2="28"/></svg>
                 <h3 style={{ fontFamily: 'inherit', fontSize: '18px', color: VS.text1, fontWeight: 400, margin: 0 }}>No articles yet</h3>
                 <p style={{ fontSize: '13px', maxWidth: '280px', lineHeight: 1.6, margin: 0 }}>Paste source URLs or upload files, then click Generate.</p>
               </div>
