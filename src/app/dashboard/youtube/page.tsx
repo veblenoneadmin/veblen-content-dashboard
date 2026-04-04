@@ -231,8 +231,9 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [brollImages, setBrollImages] = useState<Record<string, string>>({});
+  const [brollMedia, setBrollMedia] = useState<Record<string, { type: 'video' | 'image'; url: string; poster?: string }>>({});
   const [imagesLoading, setImagesLoading] = useState(false);
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const segments = useRef(parseSegments(draft.script, niche.wordsPerMinute)).current;
@@ -247,7 +248,7 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
     setImagesLoading(true);
     let cancelled = false;
     const fetchImages = async () => {
-      const imgs: Record<string, string> = {};
+      const media: Record<string, { type: 'video' | 'image'; url: string; poster?: string }> = {};
       for (const prompt of prompts) {
         if (cancelled) return;
         const kw = extractKeywords(prompt);
@@ -255,16 +256,17 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
           const res = await fetch(`/api/youtube-shorts/images?q=${encodeURIComponent(kw)}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.url) imgs[prompt] = data.url;
+            if (data.url) {
+              media[prompt] = { type: data.type || 'image', url: data.url, poster: data.poster };
+            }
           }
         } catch {
-          // Use picsum fallback directly
           const seed = hashStr(prompt) % 1000;
-          imgs[prompt] = `https://picsum.photos/seed/${seed}/576/1024`;
+          media[prompt] = { type: 'image', url: `https://picsum.photos/seed/${seed}/576/1024` };
         }
       }
       if (!cancelled) {
-        setBrollImages(imgs);
+        setBrollMedia(media);
         setImagesLoading(false);
       }
     };
@@ -361,7 +363,7 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
     if (segments[i]?.brollPrompt) { activeBrollPrompt = segments[i].brollPrompt!; break; }
   }
   if (!activeBrollPrompt && draft.brollPrompts[0]) activeBrollPrompt = draft.brollPrompts[0];
-  const bgImage = brollImages[activeBrollPrompt] || brollImages[Object.keys(brollImages)[0]] || '';
+  const activeBg = brollMedia[activeBrollPrompt] || brollMedia[Object.keys(brollMedia)[0]] || null;
 
   const phoneWidth = expanded ? 360 : 270;
   const phoneHeight = expanded ? 640 : 480;
@@ -405,25 +407,38 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
           <div style={{
             flex: 1, position: 'relative', overflow: 'hidden', background: '#000',
           }}>
-            {/* Background Image */}
-            {bgImage && (
+            {/* Background Video or Image */}
+            {activeBg?.type === 'video' ? (
+              <video
+                ref={el => { if (el) videoRefs.current[activeBg.url] = el; }}
+                src={activeBg.url}
+                poster={activeBg.poster}
+                autoPlay muted loop playsInline
+                style={{
+                  position: 'absolute', inset: 0, width: '100%', height: '100%',
+                  objectFit: 'cover',
+                  filter: seg?.type === 'pause' ? 'brightness(0.3) blur(4px)' : 'brightness(0.55)',
+                  transition: 'filter 0.5s',
+                }}
+              />
+            ) : activeBg?.url ? (
               <div style={{
                 position: 'absolute', inset: 0,
-                backgroundImage: `url(${bgImage})`,
+                backgroundImage: `url(${activeBg.url})`,
                 backgroundSize: 'cover', backgroundPosition: 'center',
                 filter: seg?.type === 'pause' ? 'brightness(0.3) blur(4px)' : 'brightness(0.55)',
                 transition: 'filter 0.5s, background-image 0.8s',
-                transform: playing ? `scale(${1 + progress * 0.05})` : 'scale(1)', // Ken Burns
+                transform: playing ? `scale(${1 + progress * 0.05})` : 'scale(1)',
               }} />
-            )}
+            ) : null}
             {/* Gradient overlay for text readability */}
             <div style={{
               position: 'absolute', inset: 0,
               background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 50%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.9) 100%)',
             }} />
 
-            {/* Loading indicator for images */}
-            {imagesLoading && !bgImage && (
+            {/* Loading indicator */}
+            {imagesLoading && !activeBg && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Loader2 size={20} style={{ color: VS.text2, animation: 'spin 1s linear infinite' }} />
               </div>
