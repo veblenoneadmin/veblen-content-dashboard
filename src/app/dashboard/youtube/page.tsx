@@ -173,7 +173,7 @@ function ScriptPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) 
   );
 }
 
-// ── Video Preview (Storyboard Player) ───────────────────────
+// ── Video Preview (with voice + images) ─────────────────────
 interface Segment {
   type: 'speech' | 'broll' | 'pause';
   text: string;
@@ -185,7 +185,6 @@ function parseSegments(script: string, wpm: number): Segment[] {
   const lines = script.split('\n').filter(Boolean);
   const segments: Segment[] = [];
   let currentSpeech: string[] = [];
-  let brollIndex = 0;
 
   const flushSpeech = () => {
     if (currentSpeech.length === 0) return;
@@ -204,7 +203,6 @@ function parseSegments(script: string, wpm: number): Segment[] {
       flushSpeech();
       const prompt = trimmed.replace(/^\[B-ROLL[:\s]*/i, '').replace(/\]$/, '');
       segments.push({ type: 'broll', text: prompt, brollPrompt: prompt, durationMs: 2500 });
-      brollIndex++;
     } else {
       currentSpeech.push(trimmed);
     }
@@ -213,30 +211,102 @@ function parseSegments(script: string, wpm: number): Segment[] {
   return segments;
 }
 
+// Extract 2-3 keywords from a prompt for Unsplash search
+function extractKeywords(prompt: string): string {
+  const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'for', 'to', 'from', 'by', 'at', 'is', 'are', 'was', 'were', 'be', 'being', 'been', 'dark', 'background', 'showing', 'against', 'style']);
+  const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+  return words.slice(0, 3).join(' ');
+}
+
 function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
   const [playing, setPlaying] = useState(false);
   const [currentSeg, setCurrentSeg] = useState(0);
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [brollImages, setBrollImages] = useState<Record<string, string>>({});
+  const [imagesLoading, setImagesLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const segments = useRef(parseSegments(draft.script, niche.wordsPerMinute)).current;
 
   const totalDuration = segments.reduce((s, seg) => s + seg.durationMs, 0);
   const currentTime = segments.slice(0, currentSeg).reduce((s, seg) => s + seg.durationMs, 0) + (segments[currentSeg]?.durationMs || 0) * progress;
 
+  // Fetch b-roll images from Unsplash on mount
+  useEffect(() => {
+    const prompts = draft.brollPrompts;
+    if (!prompts?.length) return;
+    setImagesLoading(true);
+    const fetchImages = async () => {
+      const imgs: Record<string, string> = {};
+      for (const prompt of prompts) {
+        const kw = extractKeywords(prompt);
+        try {
+          // Unsplash source — free, no API key, returns a random image
+          imgs[prompt] = `https://source.unsplash.com/576x1024/?${encodeURIComponent(kw)}`;
+        } catch {
+          imgs[prompt] = '';
+        }
+      }
+      setBrollImages(imgs);
+      setImagesLoading(false);
+    };
+    fetchImages();
+  }, [draft.brollPrompts]);
+
+  // Speak a segment using Web Speech API
+  const speak = useCallback((text: string) => {
+    if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = text
+      .replace(/\[B-ROLL:.*?\]/g, '')
+      .replace(/\[PAUSE\]/g, '')
+      .trim();
+    if (!clean) return;
+    const u = new SpeechSynthesisUtterance(clean);
+    u.rate = niche.wordsPerMinute > 155 ? 1.15 : niche.wordsPerMinute < 145 ? 0.9 : 1.0;
+    u.pitch = 1.0;
+    // Try to find a good English voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.name.includes('Daniel') || v.name.includes('Google US') || v.name.includes('Samantha'))
+      || voices.find(v => v.lang.startsWith('en') && v.localService)
+      || voices.find(v => v.lang.startsWith('en'));
+    if (preferred) u.voice = preferred;
+    utteranceRef.current = u;
+    window.speechSynthesis.speak(u);
+  }, [voiceEnabled, niche.wordsPerMinute]);
+
+  const stopSpeech = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
   const stop = useCallback(() => {
     setPlaying(false);
     if (timerRef.current) clearInterval(timerRef.current);
-  }, []);
+    stopSpeech();
+  }, [stopSpeech]);
 
-  const play = useCallback(() => {
-    setPlaying(true);
+  // Cleanup on unmount
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); stopSpeech(); }, [stopSpeech]);
+
+  // Drive playback and trigger speech per segment
+  useEffect(() => {
+    if (!playing) return;
+    // Speak current segment
+    const seg = segments[currentSeg];
+    if (seg?.type === 'speech') speak(seg.text);
+    else stopSpeech();
+
+    if (timerRef.current) clearInterval(timerRef.current);
     const TICK = 50;
     timerRef.current = setInterval(() => {
       setProgress(prev => {
-        const seg = segments[currentSeg];
-        if (!seg) { stop(); return 0; }
-        const step = TICK / seg.durationMs;
+        const s = segments[currentSeg];
+        if (!s) { stop(); return 0; }
+        const step = TICK / s.durationMs;
         const next = prev + step;
         if (next >= 1) {
           setCurrentSeg(c => {
@@ -248,38 +318,19 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
         return next;
       });
     }, TICK);
-  }, [currentSeg, segments, stop]);
 
-  // Cleanup on unmount
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
-
-  // Restart play when currentSeg changes while playing
-  useEffect(() => {
-    if (playing) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      const TICK = 50;
-      timerRef.current = setInterval(() => {
-        setProgress(prev => {
-          const seg = segments[currentSeg];
-          if (!seg) { stop(); return 0; }
-          const step = TICK / seg.durationMs;
-          const next = prev + step;
-          if (next >= 1) {
-            setCurrentSeg(c => {
-              if (c >= segments.length - 1) { stop(); return c; }
-              return c + 1;
-            });
-            return 0;
-          }
-          return next;
-        });
-      }, TICK);
-    }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [currentSeg, playing, segments, stop]);
+  }, [currentSeg, playing, segments, stop, speak, stopSpeech]);
 
-  const togglePlay = () => { if (playing) stop(); else play(); };
-  const goTo = (i: number) => { setCurrentSeg(Math.max(0, Math.min(i, segments.length - 1))); setProgress(0); };
+  const togglePlay = () => {
+    if (playing) { stop(); } else { setPlaying(true); }
+  };
+  const goTo = (i: number) => {
+    stopSpeech();
+    setCurrentSeg(Math.max(0, Math.min(i, segments.length - 1)));
+    setProgress(0);
+  };
+  const restart = () => { stopSpeech(); setCurrentSeg(0); setProgress(0); setPlaying(true); };
 
   const seg = segments[currentSeg];
   const formatTime = (ms: number) => {
@@ -287,15 +338,16 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   };
 
-  // Determine which b-roll prompt is "active" for the background
-  let activeBroll = '';
+  // Find the nearest b-roll image for current background
+  let activeBrollPrompt = '';
   for (let i = currentSeg; i >= 0; i--) {
-    if (segments[i]?.brollPrompt) { activeBroll = segments[i].brollPrompt!; break; }
+    if (segments[i]?.brollPrompt) { activeBrollPrompt = segments[i].brollPrompt!; break; }
   }
-  if (!activeBroll && draft.brollPrompts[0]) activeBroll = draft.brollPrompts[0];
+  if (!activeBrollPrompt && draft.brollPrompts[0]) activeBrollPrompt = draft.brollPrompts[0];
+  const bgImage = brollImages[activeBrollPrompt] || brollImages[Object.keys(brollImages)[0]] || '';
 
-  const phoneWidth = expanded ? 320 : 240;
-  const phoneHeight = expanded ? 568 : 426;
+  const phoneWidth = expanded ? 360 : 270;
+  const phoneHeight = expanded ? 640 : 480;
 
   return (
     <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '10px', padding: '16px' }}>
@@ -303,95 +355,154 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
         <div className="flex items-center gap-2">
           <Play size={14} style={{ color: niche.primaryColor }} />
           <span style={{ fontSize: '12px', fontWeight: 600 }}>Preview</span>
-          <span style={{ fontSize: '10px', color: VS.text2, fontFamily: 'monospace' }}>{formatTime(totalDuration)} total</span>
+          <span style={{ fontSize: '10px', color: VS.text2, fontFamily: 'monospace' }}>{formatTime(totalDuration)}</span>
         </div>
-        <button onClick={() => setExpanded(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px' }}>
-          {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setVoiceEnabled(v => !v); if (playing) stopSpeech(); }}
+            title={voiceEnabled ? 'Mute voice' : 'Enable voice'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: voiceEnabled ? niche.primaryColor : VS.text2, padding: '4px' }}
+          >
+            <Volume2 size={13} />
+          </button>
+          <button onClick={() => setExpanded(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px' }}>
+            {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
+        </div>
       </div>
 
       {/* Phone Frame */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
         <div style={{
-          width: phoneWidth, height: phoneHeight, borderRadius: '20px',
-          background: '#000', border: '3px solid #444', overflow: 'hidden',
+          width: phoneWidth, height: phoneHeight, borderRadius: '24px',
+          background: '#000', border: '3px solid #333', overflow: 'hidden',
           position: 'relative', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>
-          {/* Notch */}
-          <div style={{ height: '24px', background: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-            <div style={{ width: '60px', height: '6px', borderRadius: '3px', background: '#222' }} />
+          {/* Status Bar */}
+          <div style={{ height: '28px', background: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0, zIndex: 2 }}>
+            <div style={{ width: '50px', height: '5px', borderRadius: '3px', background: '#1a1a1a' }} />
           </div>
 
           {/* Video Area */}
           <div style={{
-            flex: 1, position: 'relative', overflow: 'hidden',
-            background: `linear-gradient(135deg, ${niche.primaryColor}22, ${niche.secondaryColor}22, #000)`,
+            flex: 1, position: 'relative', overflow: 'hidden', background: '#000',
           }}>
-            {/* B-Roll Context */}
+            {/* Background Image */}
+            {bgImage && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: `url(${bgImage})`,
+                backgroundSize: 'cover', backgroundPosition: 'center',
+                filter: seg?.type === 'pause' ? 'brightness(0.3) blur(4px)' : 'brightness(0.55)',
+                transition: 'filter 0.5s, background-image 0.8s',
+                transform: playing ? `scale(${1 + progress * 0.05})` : 'scale(1)', // Ken Burns
+              }} />
+            )}
+            {/* Gradient overlay for text readability */}
             <div style={{
-              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '20px', textAlign: 'center',
-            }}>
-              {seg?.type === 'broll' ? (
-                <div>
-                  <Film size={24} style={{ color: niche.primaryColor, marginBottom: '8px', opacity: 0.6 }} />
-                  <p style={{ fontSize: '10px', color: niche.primaryColor, fontFamily: 'monospace', opacity: 0.8 }}>
-                    {seg.text}
-                  </p>
-                </div>
-              ) : seg?.type === 'pause' ? (
-                <div style={{ width: '40px', height: '2px', background: `${VS.text2}44`, borderRadius: '1px' }} />
-              ) : activeBroll ? (
-                <p style={{ fontSize: '9px', color: VS.text2, fontFamily: 'monospace', opacity: 0.4 }}>
-                  {activeBroll}
-                </p>
-              ) : null}
-            </div>
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 50%, rgba(0,0,0,0.7) 80%, rgba(0,0,0,0.9) 100%)',
+            }} />
 
-            {/* Caption Text */}
+            {/* Loading indicator for images */}
+            {imagesLoading && !bgImage && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Loader2 size={20} style={{ color: VS.text2, animation: 'spin 1s linear infinite' }} />
+              </div>
+            )}
+
+            {/* B-Roll label when on a b-roll segment */}
+            {seg?.type === 'broll' && (
+              <div style={{ position: 'absolute', top: '40px', left: 0, right: 0, textAlign: 'center', zIndex: 2 }}>
+                <span style={{
+                  display: 'inline-block', padding: '4px 12px', borderRadius: '6px',
+                  background: `${VS.purple}cc`, fontSize: '10px', fontWeight: 600, color: '#fff',
+                }}>
+                  <Film size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                  {seg.text.length > 40 ? seg.text.slice(0, 40) + '...' : seg.text}
+                </span>
+              </div>
+            )}
+
+            {/* Caption Text — bottom third, YouTube Shorts style */}
             {seg?.type === 'speech' && (
               <div style={{
-                position: 'absolute', bottom: '40px', left: '12px', right: '12px',
-                textAlign: 'center',
+                position: 'absolute', bottom: '20px', left: '16px', right: '16px',
+                textAlign: 'center', zIndex: 2,
               }}>
                 <p style={{
-                  fontSize: expanded ? '14px' : '12px', fontWeight: 800, color: '#FFD700',
-                  textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.5)',
-                  lineHeight: 1.4, letterSpacing: '0.02em',
-                  WebkitTextStroke: '0.3px rgba(0,0,0,0.3)',
+                  fontSize: expanded ? '16px' : '13px', fontWeight: 900, color: '#FFFFFF',
+                  textShadow: '0 2px 8px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,1)',
+                  lineHeight: 1.35, letterSpacing: '0.01em',
+                  padding: '8px 4px',
                 }}>
-                  {seg.text.length > 120 ? seg.text.slice(0, 120) + '...' : seg.text}
+                  {/* Highlight current words — show ~15 words at a time */}
+                  {(() => {
+                    const words = seg.text.split(/\s+/);
+                    const chunkSize = 8;
+                    const chunkIdx = Math.min(Math.floor(progress * (words.length / chunkSize)), Math.ceil(words.length / chunkSize) - 1);
+                    const start = chunkIdx * chunkSize;
+                    const chunk = words.slice(start, start + chunkSize).join(' ');
+                    return chunk;
+                  })()}
                 </p>
               </div>
             )}
 
-            {/* Segment indicator */}
-            <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+            {/* Pause visual */}
+            {seg?.type === 'pause' && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ width: '4px', height: '20px', borderRadius: '2px', background: `${VS.text2}66` }} />
+                  <div style={{ width: '4px', height: '20px', borderRadius: '2px', background: `${VS.text2}66` }} />
+                </div>
+              </div>
+            )}
+
+            {/* Segment counter */}
+            <div style={{ position: 'absolute', top: '36px', right: '10px', zIndex: 2 }}>
               <span style={{
-                padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontFamily: 'monospace',
-                background: 'rgba(0,0,0,0.6)', color: VS.text2,
+                padding: '2px 7px', borderRadius: '10px', fontSize: '9px', fontFamily: 'monospace',
+                background: 'rgba(0,0,0,0.6)', color: '#fff',
               }}>
                 {currentSeg + 1}/{segments.length}
               </span>
             </div>
 
-            {/* Title overlay at top */}
-            <div style={{ position: 'absolute', top: '8px', left: '8px' }}>
+            {/* Title overlay */}
+            <div style={{ position: 'absolute', top: '36px', left: '10px', zIndex: 2, maxWidth: '70%' }}>
               <span style={{
-                padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 600,
-                background: 'rgba(0,0,0,0.6)', color: VS.text0,
+                padding: '3px 8px', borderRadius: '6px', fontSize: '9px', fontWeight: 700,
+                background: 'rgba(0,0,0,0.6)', color: '#fff',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
               }}>
-                {niche.emoji} {draft.title.length > 30 ? draft.title.slice(0, 30) + '...' : draft.title}
+                {niche.emoji} {draft.title.length > 28 ? draft.title.slice(0, 28) + '...' : draft.title}
               </span>
+            </div>
+
+            {/* YouTube Shorts side buttons (fake) */}
+            <div style={{ position: 'absolute', right: '10px', bottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', zIndex: 2 }}>
+              {[
+                { icon: '❤️', label: '1.2K' },
+                { icon: '💬', label: '48' },
+                { icon: '↗️', label: 'Share' },
+              ].map(btn => (
+                <div key={btn.label} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '18px' }}>{btn.icon}</div>
+                  <span style={{ fontSize: '8px', color: '#fff', fontWeight: 600 }}>{btn.label}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Bottom Bar */}
-          <div style={{ height: '4px', background: '#222', flexShrink: 0 }}>
+          {/* Progress Bar */}
+          <div style={{ height: '3px', background: '#222', flexShrink: 0 }}>
             <div style={{
               height: '100%', background: niche.primaryColor,
               width: `${(currentTime / totalDuration) * 100}%`,
               transition: 'width 0.05s linear',
+              boxShadow: `0 0 6px ${niche.primaryColor}`,
             }} />
           </div>
         </div>
@@ -405,22 +516,26 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
         <button
           onClick={togglePlay}
           style={{
-            width: '36px', height: '36px', borderRadius: '50%',
+            width: '40px', height: '40px', borderRadius: '50%',
             background: niche.primaryColor, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 0 12px ${niche.primaryColor}44`,
           }}
         >
-          {playing ? <Pause size={16} style={{ color: '#fff' }} /> : <Play size={16} style={{ color: '#fff', marginLeft: '2px' }} />}
+          {playing ? <Pause size={18} style={{ color: '#fff' }} /> : <Play size={18} style={{ color: '#fff', marginLeft: '2px' }} />}
         </button>
         <button onClick={() => goTo(currentSeg + 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px' }}>
           <SkipForward size={16} />
+        </button>
+        <button onClick={restart} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px', marginLeft: '4px' }}>
+          <RefreshCw size={14} />
         </button>
       </div>
 
       {/* Time */}
       <div className="flex items-center justify-center gap-2" style={{ fontSize: '10px', fontFamily: 'monospace', color: VS.text2 }}>
         <span>{formatTime(currentTime)}</span>
-        <span>/</span>
+        <span style={{ color: VS.border }}>/</span>
         <span>{formatTime(totalDuration)}</span>
       </div>
 
@@ -444,11 +559,15 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
         ))}
       </div>
 
-      {/* Segment legend */}
+      {/* Legend */}
       <div className="flex items-center gap-4 mt-2 justify-center" style={{ fontSize: '9px', fontFamily: 'monospace', color: VS.text2 }}>
         <span><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: niche.primaryColor, marginRight: '4px' }} />Speech</span>
         <span><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: VS.purple, marginRight: '4px' }} />B-Roll</span>
         <span><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: VS.text2, marginRight: '4px' }} />Pause</span>
+        <span style={{ color: voiceEnabled ? niche.primaryColor : VS.text2 }}>
+          <Volume2 size={8} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
+          {voiceEnabled ? 'Voice on' : 'Muted'}
+        </span>
       </div>
     </div>
   );
