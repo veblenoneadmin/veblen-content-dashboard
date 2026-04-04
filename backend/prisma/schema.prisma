@@ -215,3 +215,33 @@ model CreatorPost {
   @@index([engagementRate])
   @@index([scrapedAt])
 }
+
+// ── YouTube Shorts Pipeline ──────────────────────────────────
+
+model YoutubeShort {
+  id              String    @id @default(cuid())
+  topic           String
+  nicheId         String
+  status          String    @default("draft") // draft | producing | produced | uploading | uploaded | failed
+  title           String?
+  description     String?   @db.Text
+  tags            String?   @db.Text          // JSON array as string
+  hook            String?   @db.Text
+  script          String?   @db.LongText
+  brollPrompts    String?   @db.LongText      // JSON array as string
+  thumbnailText   String?
+  thumbnailUrl    String?   @db.Text
+  videoUrl        String?   @db.Text
+  youtubeVideoId  String?
+  youtubeUrl      String?   @db.Text
+  durationMs      Int?
+  captionsSrt     String?   @db.LongText
+  assemblyPlan    String?   @db.LongText      // JSON object as string
+  error           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([nicheId])
+  @@index([createdAt])
+}

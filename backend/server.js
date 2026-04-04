@@ -14,6 +14,7 @@ const contentApprovalsRoutes  = require('./routes/contentApprovals');
 const frameworkTagsRoutes     = require('./routes/frameworkTags');
 const weeklyReportsRoutes     = require('./routes/weeklyReports');
 const socialSourcesRoutes     = require('./routes/socialSources');
+const youtubeShortsRoutes     = require('./routes/youtubeShorts');
 
 const app  = express();
 const PORT = process.env.BACKEND_PORT || 3001;
@@ -40,6 +41,7 @@ app.use('/api/content-approvals',  contentApprovalsRoutes);
 app.use('/api/framework-tags',     frameworkTagsRoutes);
 app.use('/api/weekly-reports',     weeklyReportsRoutes);
 app.use('/api/social-sources',     socialSourcesRoutes);
+app.use('/api/youtube-shorts',     youtubeShortsRoutes);
 
 // ── Health ────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'veblen-backend' }));
