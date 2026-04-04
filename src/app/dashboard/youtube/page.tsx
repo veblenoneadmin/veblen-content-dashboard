@@ -211,11 +211,18 @@ function parseSegments(script: string, wpm: number): Segment[] {
   return segments;
 }
 
-// Extract 2-3 keywords from a prompt for Unsplash search
+// Extract keywords from a prompt for image search
 function extractKeywords(prompt: string): string {
-  const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'for', 'to', 'from', 'by', 'at', 'is', 'are', 'was', 'were', 'be', 'being', 'been', 'dark', 'background', 'showing', 'against', 'style']);
+  const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'for', 'to', 'from', 'by', 'at', 'is', 'are', 'was', 'were', 'be', 'being', 'been', 'dark', 'background', 'showing', 'against', 'style', 'image', 'photo']);
   const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
-  return words.slice(0, 3).join(' ');
+  return words.slice(0, 3).join(',');
+}
+
+// Simple hash for deterministic image seeds
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
 }
 
 function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
@@ -233,26 +240,36 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
   const totalDuration = segments.reduce((s, seg) => s + seg.durationMs, 0);
   const currentTime = segments.slice(0, currentSeg).reduce((s, seg) => s + seg.durationMs, 0) + (segments[currentSeg]?.durationMs || 0) * progress;
 
-  // Fetch b-roll images from Unsplash on mount
+  // Fetch b-roll images via our API route
   useEffect(() => {
     const prompts = draft.brollPrompts;
     if (!prompts?.length) return;
     setImagesLoading(true);
+    let cancelled = false;
     const fetchImages = async () => {
       const imgs: Record<string, string> = {};
       for (const prompt of prompts) {
+        if (cancelled) return;
         const kw = extractKeywords(prompt);
         try {
-          // Unsplash source — free, no API key, returns a random image
-          imgs[prompt] = `https://source.unsplash.com/576x1024/?${encodeURIComponent(kw)}`;
+          const res = await fetch(`/api/youtube-shorts/images?q=${encodeURIComponent(kw)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.url) imgs[prompt] = data.url;
+          }
         } catch {
-          imgs[prompt] = '';
+          // Use picsum fallback directly
+          const seed = hashStr(prompt) % 1000;
+          imgs[prompt] = `https://picsum.photos/seed/${seed}/576/1024`;
         }
       }
-      setBrollImages(imgs);
-      setImagesLoading(false);
+      if (!cancelled) {
+        setBrollImages(imgs);
+        setImagesLoading(false);
+      }
     };
     fetchImages();
+    return () => { cancelled = true; };
   }, [draft.brollPrompts]);
 
   // Speak a segment using Web Speech API
