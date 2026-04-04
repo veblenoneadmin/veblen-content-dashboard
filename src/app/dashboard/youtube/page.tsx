@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  Play, Loader2, Copy, Download, RefreshCw, ChevronRight, ChevronDown,
+  Play, Pause, Loader2, Copy, Download, RefreshCw, ChevronRight, ChevronDown,
   Sparkles, FileText, Film, Volume2, Type, Upload, Check, AlertCircle,
-  Wand2, Globe, Link2, X, Send,
+  Wand2, Globe, Link2, X, Send, SkipForward, SkipBack, Maximize2, Minimize2,
 } from 'lucide-react';
 import NICHE_PROFILES, { type NicheProfile } from '@/lib/youtube-niches';
 
@@ -169,6 +169,287 @@ function ScriptPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) 
           </p>
         );
       })}
+    </div>
+  );
+}
+
+// ── Video Preview (Storyboard Player) ───────────────────────
+interface Segment {
+  type: 'speech' | 'broll' | 'pause';
+  text: string;
+  brollPrompt?: string;
+  durationMs: number;
+}
+
+function parseSegments(script: string, wpm: number): Segment[] {
+  const lines = script.split('\n').filter(Boolean);
+  const segments: Segment[] = [];
+  let currentSpeech: string[] = [];
+  let brollIndex = 0;
+
+  const flushSpeech = () => {
+    if (currentSpeech.length === 0) return;
+    const text = currentSpeech.join(' ');
+    const words = text.split(/\s+/).length;
+    segments.push({ type: 'speech', text, durationMs: Math.round((words / wpm) * 60 * 1000) });
+    currentSpeech = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === '[PAUSE]') {
+      flushSpeech();
+      segments.push({ type: 'pause', text: '', durationMs: 1200 });
+    } else if (trimmed.startsWith('[B-ROLL')) {
+      flushSpeech();
+      const prompt = trimmed.replace(/^\[B-ROLL[:\s]*/i, '').replace(/\]$/, '');
+      segments.push({ type: 'broll', text: prompt, brollPrompt: prompt, durationMs: 2500 });
+      brollIndex++;
+    } else {
+      currentSpeech.push(trimmed);
+    }
+  }
+  flushSpeech();
+  return segments;
+}
+
+function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
+  const [playing, setPlaying] = useState(false);
+  const [currentSeg, setCurrentSeg] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const segments = useRef(parseSegments(draft.script, niche.wordsPerMinute)).current;
+
+  const totalDuration = segments.reduce((s, seg) => s + seg.durationMs, 0);
+  const currentTime = segments.slice(0, currentSeg).reduce((s, seg) => s + seg.durationMs, 0) + (segments[currentSeg]?.durationMs || 0) * progress;
+
+  const stop = useCallback(() => {
+    setPlaying(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  const play = useCallback(() => {
+    setPlaying(true);
+    const TICK = 50;
+    timerRef.current = setInterval(() => {
+      setProgress(prev => {
+        const seg = segments[currentSeg];
+        if (!seg) { stop(); return 0; }
+        const step = TICK / seg.durationMs;
+        const next = prev + step;
+        if (next >= 1) {
+          setCurrentSeg(c => {
+            if (c >= segments.length - 1) { stop(); return c; }
+            return c + 1;
+          });
+          return 0;
+        }
+        return next;
+      });
+    }, TICK);
+  }, [currentSeg, segments, stop]);
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  // Restart play when currentSeg changes while playing
+  useEffect(() => {
+    if (playing) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      const TICK = 50;
+      timerRef.current = setInterval(() => {
+        setProgress(prev => {
+          const seg = segments[currentSeg];
+          if (!seg) { stop(); return 0; }
+          const step = TICK / seg.durationMs;
+          const next = prev + step;
+          if (next >= 1) {
+            setCurrentSeg(c => {
+              if (c >= segments.length - 1) { stop(); return c; }
+              return c + 1;
+            });
+            return 0;
+          }
+          return next;
+        });
+      }, TICK);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [currentSeg, playing, segments, stop]);
+
+  const togglePlay = () => { if (playing) stop(); else play(); };
+  const goTo = (i: number) => { setCurrentSeg(Math.max(0, Math.min(i, segments.length - 1))); setProgress(0); };
+
+  const seg = segments[currentSeg];
+  const formatTime = (ms: number) => {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+
+  // Determine which b-roll prompt is "active" for the background
+  let activeBroll = '';
+  for (let i = currentSeg; i >= 0; i--) {
+    if (segments[i]?.brollPrompt) { activeBroll = segments[i].brollPrompt!; break; }
+  }
+  if (!activeBroll && draft.brollPrompts[0]) activeBroll = draft.brollPrompts[0];
+
+  const phoneWidth = expanded ? 320 : 240;
+  const phoneHeight = expanded ? 568 : 426;
+
+  return (
+    <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '10px', padding: '16px' }}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Play size={14} style={{ color: niche.primaryColor }} />
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Preview</span>
+          <span style={{ fontSize: '10px', color: VS.text2, fontFamily: 'monospace' }}>{formatTime(totalDuration)} total</span>
+        </div>
+        <button onClick={() => setExpanded(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px' }}>
+          {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+        </button>
+      </div>
+
+      {/* Phone Frame */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+        <div style={{
+          width: phoneWidth, height: phoneHeight, borderRadius: '20px',
+          background: '#000', border: '3px solid #444', overflow: 'hidden',
+          position: 'relative', display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Notch */}
+          <div style={{ height: '24px', background: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+            <div style={{ width: '60px', height: '6px', borderRadius: '3px', background: '#222' }} />
+          </div>
+
+          {/* Video Area */}
+          <div style={{
+            flex: 1, position: 'relative', overflow: 'hidden',
+            background: `linear-gradient(135deg, ${niche.primaryColor}22, ${niche.secondaryColor}22, #000)`,
+          }}>
+            {/* B-Roll Context */}
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '20px', textAlign: 'center',
+            }}>
+              {seg?.type === 'broll' ? (
+                <div>
+                  <Film size={24} style={{ color: niche.primaryColor, marginBottom: '8px', opacity: 0.6 }} />
+                  <p style={{ fontSize: '10px', color: niche.primaryColor, fontFamily: 'monospace', opacity: 0.8 }}>
+                    {seg.text}
+                  </p>
+                </div>
+              ) : seg?.type === 'pause' ? (
+                <div style={{ width: '40px', height: '2px', background: `${VS.text2}44`, borderRadius: '1px' }} />
+              ) : activeBroll ? (
+                <p style={{ fontSize: '9px', color: VS.text2, fontFamily: 'monospace', opacity: 0.4 }}>
+                  {activeBroll}
+                </p>
+              ) : null}
+            </div>
+
+            {/* Caption Text */}
+            {seg?.type === 'speech' && (
+              <div style={{
+                position: 'absolute', bottom: '40px', left: '12px', right: '12px',
+                textAlign: 'center',
+              }}>
+                <p style={{
+                  fontSize: expanded ? '14px' : '12px', fontWeight: 800, color: '#FFD700',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.5)',
+                  lineHeight: 1.4, letterSpacing: '0.02em',
+                  WebkitTextStroke: '0.3px rgba(0,0,0,0.3)',
+                }}>
+                  {seg.text.length > 120 ? seg.text.slice(0, 120) + '...' : seg.text}
+                </p>
+              </div>
+            )}
+
+            {/* Segment indicator */}
+            <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+              <span style={{
+                padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontFamily: 'monospace',
+                background: 'rgba(0,0,0,0.6)', color: VS.text2,
+              }}>
+                {currentSeg + 1}/{segments.length}
+              </span>
+            </div>
+
+            {/* Title overlay at top */}
+            <div style={{ position: 'absolute', top: '8px', left: '8px' }}>
+              <span style={{
+                padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 600,
+                background: 'rgba(0,0,0,0.6)', color: VS.text0,
+              }}>
+                {niche.emoji} {draft.title.length > 30 ? draft.title.slice(0, 30) + '...' : draft.title}
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div style={{ height: '4px', background: '#222', flexShrink: 0 }}>
+            <div style={{
+              height: '100%', background: niche.primaryColor,
+              width: `${(currentTime / totalDuration) * 100}%`,
+              transition: 'width 0.05s linear',
+            }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-3 mb-2">
+        <button onClick={() => goTo(currentSeg - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px' }}>
+          <SkipBack size={16} />
+        </button>
+        <button
+          onClick={togglePlay}
+          style={{
+            width: '36px', height: '36px', borderRadius: '50%',
+            background: niche.primaryColor, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {playing ? <Pause size={16} style={{ color: '#fff' }} /> : <Play size={16} style={{ color: '#fff', marginLeft: '2px' }} />}
+        </button>
+        <button onClick={() => goTo(currentSeg + 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: VS.text2, padding: '4px' }}>
+          <SkipForward size={16} />
+        </button>
+      </div>
+
+      {/* Time */}
+      <div className="flex items-center justify-center gap-2" style={{ fontSize: '10px', fontFamily: 'monospace', color: VS.text2 }}>
+        <span>{formatTime(currentTime)}</span>
+        <span>/</span>
+        <span>{formatTime(totalDuration)}</span>
+      </div>
+
+      {/* Segment Timeline */}
+      <div style={{ display: 'flex', gap: '2px', marginTop: '10px' }}>
+        {segments.map((s, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            title={s.type === 'speech' ? s.text.slice(0, 50) : s.type === 'broll' ? `B-Roll: ${s.text}` : 'Pause'}
+            style={{
+              flex: s.durationMs / totalDuration, height: '6px', borderRadius: '3px', border: 'none', cursor: 'pointer', padding: 0,
+              background: i === currentSeg
+                ? (s.type === 'broll' ? VS.purple : s.type === 'pause' ? VS.text2 : niche.primaryColor)
+                : i < currentSeg
+                  ? `${VS.green}66`
+                  : VS.bg3,
+              transition: 'background 0.15s',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Segment legend */}
+      <div className="flex items-center gap-4 mt-2 justify-center" style={{ fontSize: '9px', fontFamily: 'monospace', color: VS.text2 }}>
+        <span><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: niche.primaryColor, marginRight: '4px' }} />Speech</span>
+        <span><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: VS.purple, marginRight: '4px' }} />B-Roll</span>
+        <span><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: VS.text2, marginRight: '4px' }} />Pause</span>
+      </div>
     </div>
   );
 }
@@ -744,6 +1025,9 @@ export default function YouTubeShortsPage() {
                 </p>
               </div>
             </div>
+
+            {/* Video Preview */}
+            <VideoPreview draft={draft} niche={selectedNiche} />
 
             {/* Edit/Rewrite Bar */}
             <div style={{
