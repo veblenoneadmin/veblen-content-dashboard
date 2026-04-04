@@ -212,10 +212,14 @@ function parseSegments(script: string, wpm: number): Segment[] {
 }
 
 // Extract keywords from a prompt for image search
-function extractKeywords(prompt: string): string {
-  const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'for', 'to', 'from', 'by', 'at', 'is', 'are', 'was', 'were', 'be', 'being', 'been', 'dark', 'background', 'showing', 'against', 'style', 'image', 'photo']);
-  const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
-  return words.slice(0, 3).join(',');
+// Clean a b-roll prompt into a good Pexels search query
+function cleanSearchQuery(prompt: string): string {
+  // Remove filler words that hurt video search results
+  const noise = /\b(dark|light|bright|neon|glowing|animated|showing|against|background|foreground|overlay|graphics|style|aesthetic|accents|close-?up|wide-?shot|pan|zoom|footage|clip|3d|cgi)\b/gi;
+  const cleaned = prompt.replace(noise, '').replace(/\s{2,}/g, ' ').trim();
+  // Keep it to ~5 meaningful words for Pexels
+  const words = cleaned.split(/\s+/).filter(w => w.length > 2);
+  return words.slice(0, 5).join(' ') || prompt.slice(0, 40);
 }
 
 // Simple hash for deterministic image seeds
@@ -251,7 +255,7 @@ function VideoPreview({ draft, niche }: { draft: Draft; niche: NicheProfile }) {
       const media: Record<string, { type: 'video' | 'image'; url: string; poster?: string }> = {};
       for (const prompt of prompts) {
         if (cancelled) return;
-        const kw = extractKeywords(prompt);
+        const kw = cleanSearchQuery(prompt);
         try {
           const res = await fetch(`/api/youtube-shorts/images?q=${encodeURIComponent(kw)}`);
           if (res.ok) {
